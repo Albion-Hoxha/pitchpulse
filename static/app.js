@@ -12,9 +12,16 @@ const STAT_ROWS = [
   ["Tackles won", (t) => t.tackles, String],
   ["Fastest shot", (t) => t.top_shot_kmh, (v) => (v ? `${v} km/h` : "–")],
 ];
-const LABELS = { goal: "Goal", big_chance: "Big chance", momentum_shift: "Momentum", half_time: "Half-time", full_time: "Full-time" };
+const LABELS = { goal: "Goal", big_chance: "Big chance", momentum_shift: "Momentum", half_time: "Half-time", full_time: "Full-time", player_focus: "Player cam" };
+const STAT_NAMES = {
+  possession_pct: "Possession %", xg: "Expected goals (xG)", shots: "Shots", on_target: "Shots on target",
+  pass_accuracy_pct: "Pass accuracy %", final_third_passes: "Final-third passes", pressures: "Pressures", tackles: "Tackles won",
+};
 
-let source = null, lastId = 0, ended = false, lowerThirdTimer = null;
+let source = null, lastId = 0, ended = false, lowerThirdTimer = null, graphicTimer = null, teamsInfo = null;
+
+// Agent text is model output: always insert it as text, never as HTML.
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
 // Event coordinates are normalised to the acting team attacking towards x=105; home attacks right on screen.
 const abs = (side, x, y) => (side === "home" ? [x, y] : [W - x, H - y]);
@@ -91,7 +98,49 @@ function showCommentary(c) {
     a.textContent = `Why it matters: ${c.analysis}`;
     a.hidden = false;
   }
-  if ($("lower-third").dataset.moment === c.moment_id && !$("lower-third").hidden) $("lt-text").textContent = c.text;
+  if (c.moment_id.endsWith(":full_time")) {
+    $("recap").textContent = c.text;
+    $("recap-box").hidden = false;
+  } else if ($("lower-third").dataset.moment === c.moment_id && !$("lower-third").hidden) {
+    $("lt-text").textContent = c.text;
+  }
+  if (c.overlay) renderGraphic(c.overlay);
+}
+
+// The Director agent's overlay: graphic type, title and on-screen duration, data from the evidence.
+function renderGraphic(o) {
+  const d = o.data, short = (side) => esc(teamsInfo ? teamsInfo[side].short : side);
+  let body;
+  if (o.graphic === "score_update") {
+    body = `<div class="g-big">${short("home")} ${d.score.home}–${d.score.away} ${short("away")}</div>
+      <div>${esc(d.player || "")}${d.xg != null ? ` · xG ${d.xg.toFixed(2)}` : ""}${d.speed_kmh ? ` · ${d.speed_kmh} km/h` : ""}</div>`;
+  } else if (o.graphic === "stat_compare") {
+    const { home, away } = d.values, total = home + away || 1;
+    body = `<div class="g-label">${esc(STAT_NAMES[o.stat] || o.stat)}</div>
+      <div class="g-compare"><b class="home">${home}</b><div class="stat-bar"><div class="home" style="width:${(100 * home) / total}%"></div><div class="away" style="width:${(100 * away) / total}%"></div></div><b class="away">${away}</b></div>`;
+  } else if (o.graphic === "player_card") {
+    const p = d.player;
+    body = `<div class="g-big ${esc(p.team)}">${esc(p.name)}</div>
+      <div class="g-grid"><span>Passes<b>${p.passes_completed}/${p.passes}</b></span><span>Shots<b>${p.shots}</b></span>
+      <span>xG<b>${Number(p.xg).toFixed(2)}</b></span><span>Goals<b>${p.goals}</b></span></div>`;
+  } else {
+    const m = d.momentum;
+    body = `<div class="g-label">Momentum · last 5 min</div>
+      <div class="momentum-track g-momentum"><div style="position:absolute;top:0;bottom:0;left:${m >= 0 ? 50 : 50 - Math.abs(m) / 2}%;width:${Math.abs(m) / 2}%;background:var(--${m >= 0 ? "home" : "away"})"></div></div>`;
+  }
+  const g = $("graphic");
+  g.innerHTML = `<div class="g-title">${esc(o.title)}</div>${body}`;
+  g.hidden = false;
+  clearTimeout(graphicTimer);
+  graphicTimer = setTimeout(() => (g.hidden = true), o.duration_s * 1000);
+}
+
+function renderFocus(f) {
+  const cam = $("player-cam");
+  cam.hidden = false;
+  cam.innerHTML = `<div class="g-label">Player cam</div><b>${esc(f.name)}</b>
+    <div class="g-grid"><span>Passes<b>${f.passes_completed ?? 0}/${f.passes ?? 0}</b></span><span>Shots<b>${f.shots ?? 0}</b></span>
+    <span>xG<b>${Number(f.xg ?? 0).toFixed(2)}</b></span><span>Goals<b>${f.goals ?? 0}</b></span></div>`;
 }
 
 function lowerThird(kind, text, momentId) {
@@ -118,7 +167,7 @@ function start() {
   if (ended) reset();
   const params = new URLSearchParams({
     seed: $("seed").value || 0, speed: $("speed").value, start: lastId,
-    mode: $("mode").value, favorite: $("favorite").value, language: $("language").value,
+    mode: $("mode").value, favorite: $("favorite").value, language: $("language").value, player: $("player").value,
   });
   source = new EventSource(`/api/match/stream?${params}`);
   document.body.classList.add("live");
@@ -132,6 +181,7 @@ function start() {
     drawEvent(event);
     renderStats(stats);
     moments.forEach(showMoment);
+    if (data.focus) renderFocus(data.focus);
   };
   source.addEventListener("end", () => { ended = true; stop(); });
   source.onerror = () => { if (!ended) stop(); };
@@ -142,16 +192,26 @@ function reset() {
   lastId = 0;
   $("moments").innerHTML = "";
   $("trail").innerHTML = "";
-  $("lower-third").hidden = true;
+  ["lower-third", "graphic", "recap-box", "player-cam"].forEach((id) => ($(id).hidden = true));
   moveBall([W / 2, H / 2]);
 }
 
 $("play").addEventListener("click", () => (source ? stop() : start()));
 $("seed").addEventListener("change", () => { stop(); reset(); $("play").textContent = "▶ Kick off"; });
-["speed", "mode", "favorite", "language"].forEach((id) =>
-  $(id).addEventListener("change", () => { if (source) { stop(); start(); } }));
+["speed", "mode", "favorite", "language", "player"].forEach((id) =>
+  $(id).addEventListener("change", () => {
+    if (id === "player" && !$("player").value) $("player-cam").hidden = true;
+    if (source) { stop(); start(); }
+  }));
 
 fetch("/api/teams").then((r) => r.json()).then((t) => {
+  teamsInfo = t;
+  for (const side of ["home", "away"]) {
+    const group = document.createElement("optgroup");
+    group.label = t[side].name;
+    t[side].players.forEach((p) => group.append(new Option(`${p.number} · ${p.name}`, p.name)));
+    $("player").append(group);
+  }
   $("home-short").textContent = t.home.short;
   $("away-short").textContent = t.away.short;
   $("fav-home").textContent = t.home.name;

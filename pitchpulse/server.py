@@ -6,11 +6,11 @@ import asyncio
 import json
 from pathlib import Path
 
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
-from .agents import commentate
+from .agents import ROSTER, commentate
 from .moments import MomentDetector
 from .simulator import AWAY, HOME, simulate
 from .stats import MatchStats
@@ -39,15 +39,18 @@ def teams():
 async def stream(seed: int = 7, speed: float = Query(30, gt=0, le=1000), start: int = Query(0, ge=0),
                  mode: str = Query("casual", pattern="^(casual|analyst)$"),
                  favorite: str = Query("", pattern="^(home|away)?$"),
-                 language: str = Query("English", max_length=30)):
-    """SSE messages: {event, stats, moments} per match event, and {commentary} when the
-    agents finish voicing a moment. `start` resumes after a pause: events up to that id
-    are replayed instantly so the stats stay correct."""
-    prefs = {"mode": mode, "favorite": favorite, "language": language}
+                 language: str = Query("English", pattern="^[A-Za-z ]{2,30}$"),
+                 player: str = ""):
+    """SSE messages: {event, stats, moments, focus?} per match event, and {commentary} (with
+    its timed overlay) when the agents finish a moment. `start` resumes after a pause:
+    events up to that id are replayed instantly so the stats stay correct."""
+    if player and player not in ROSTER:
+        raise HTTPException(422, "player must be a name from /api/teams")
+    prefs = {"mode": mode, "favorite": favorite, "language": language, "player": player}
 
     async def gen():
         stats = MatchStats()
-        detector = MomentDetector(NAMES)
+        detector = MomentDetector(NAMES, focus=player or None)
         voiced, pending = asyncio.Queue(), set()
         last_t = None
 
@@ -70,7 +73,10 @@ async def stream(seed: int = 7, speed: float = Query(30, gt=0, le=1000), start: 
                 task = asyncio.create_task(voice(m))
                 pending.add(task)
                 task.add_done_callback(pending.discard)
-            yield f"data: {json.dumps({'event': e, 'stats': stats.snapshot(), 'moments': moments})}\n\n"
+            msg = {"event": e, "stats": stats.snapshot(), "moments": moments}
+            if player:
+                msg["focus"] = {"name": player, **stats.players.get(player, {})}
+            yield f"data: {json.dumps(msg)}\n\n"
             for msg in drain():
                 yield msg
         if pending:

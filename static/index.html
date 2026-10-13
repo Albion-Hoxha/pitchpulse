@@ -33,6 +33,11 @@
           <option value="away" id="fav-away">Away</option>
         </select>
       </label>
+      <label>Follow player
+        <select id="player">
+          <option value="">Nobody</option>
+        </select>
+      </label>
       <label>Language
         <select id="language">
           <option>English</option>
@@ -78,6 +83,10 @@
         <div class="momentum-track"><div id="momentum-bar"></div></div>
       </div>
 
+      <div id="player-cam" class="player-cam" hidden aria-live="polite"></div>
+
+      <div id="graphic" class="graphic" hidden aria-live="polite"></div>
+
       <div id="lower-third" class="lower-third" aria-live="assertive" hidden>
         <span class="lt-kind" id="lt-kind"></span>
         <span class="lt-text" id="lt-text"></span>
@@ -88,6 +97,10 @@
       <h2>Live stats</h2>
       <div class="legend"><span class="home" id="home-name">Home</span><span class="away" id="away-name">Away</span></div>
       <div id="stats"></div>
+      <section id="recap-box" hidden>
+        <h2>Match recap</h2>
+        <p id="recap" class="recap"></p>
+      </section>
       <h2>Key moments</h2>
       <ol id="moments" class="moments"></ol>
     </aside>

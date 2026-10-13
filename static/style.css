@@ -81,6 +81,27 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .lt-text { padding: 10px 14px; font-size: 17px; font-weight: 600; }
 @keyframes slide { from { transform: translateY(120%); } }
 
+.graphic, .player-cam {
+  position: absolute; background: rgba(8, 14, 26, 0.94); border-radius: 6px; padding: 10px 14px;
+  border-left: 4px solid var(--accent); animation: fade 0.3s ease-out;
+}
+.graphic { right: 14px; top: 64px; width: 260px; }
+.player-cam { left: 14px; top: 64px; width: 220px; font-size: 13px; border-left-color: var(--muted); }
+.g-title { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); margin-bottom: 6px; font-weight: 700; }
+.g-label { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.g-big { font-size: 20px; font-weight: 800; }
+.g-big.home { color: var(--home); }
+.g-big.away { color: var(--away); }
+.g-compare { display: flex; align-items: center; gap: 8px; font-size: 18px; }
+.g-compare .stat-bar { flex: 1; margin: 0; height: 8px; }
+.g-compare .home { color: var(--home); }
+.g-compare .away { color: var(--away); }
+.g-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; margin-top: 6px; color: var(--muted); font-size: 12px; }
+.g-grid b { display: block; color: var(--text); font-size: 15px; }
+.g-momentum { height: 10px; }
+@keyframes fade { from { opacity: 0; transform: translateY(-6px); } }
+.recap { margin: 0 0 4px; line-height: 1.5; }
+
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
 .panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 10px; }
 .panel h2:not(:first-child) { margin-top: 22px; }

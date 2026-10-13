@@ -1,6 +1,6 @@
 import unittest
 
-from pitchpulse.agents import fact_check, template
+from pitchpulse.agents import build_overlay, default_pick, fact_check, template, validate_pick
 from pitchpulse.moments import MomentDetector
 from pitchpulse.simulator import shot_xg, simulate
 from pitchpulse.stats import MatchStats
@@ -58,8 +58,33 @@ class SimulatorTest(unittest.TestCase):
         goal = next(m for m in moments if m["kind"] == "goal")  # Hale, 33:14, xG 0.573, 0-1
         self.assertEqual(fact_check("Hale scores in the 34th minute, a 57% chance, 0-1!", goal), [])
         self.assertEqual(fact_check("Hale's 12th goal of the season, 0-1.", goal), ["12"])
+        swing = next(m for m in moments if m["kind"] == "momentum_shift")
+        self.assertEqual(fact_check("Mateo Ruiz and Riverside are dominating now!", swing), ["Mateo Ruiz"])
         for m in moments:  # the fallback templates must always pass the Fact-Checker
             self.assertEqual(fact_check(template(m, names), m), [], template(m, names))
+
+    def test_focus_recap_and_director(self):
+        names = {"home": "H", "away": "A"}
+        stats, det, moments = MatchStats(), MomentDetector(names, focus="Mateo Ruiz"), []
+        for e in simulate(seed=7):
+            stats.update(e)
+            moments += det.check(e, stats)
+        focus = [m for m in moments if m["kind"] == "player_focus"]
+        self.assertTrue(focus and all(m["evidence"]["player"] == "Mateo Ruiz" for m in focus))
+        full = moments[-1]
+        self.assertEqual(full["kind"], "full_time")
+        self.assertEqual(sum(t["kind"] == "goal" for t in full["evidence"]["timeline"]), sum(full["evidence"]["score"].values()))
+        self.assertEqual(fact_check("Hale opened the scoring in the 34th minute.", full), [])
+        for m in moments:
+            self.assertEqual(fact_check(template(m, names), m), [], template(m, names))
+            overlay = build_overlay(default_pick(m), m)  # every default graphic must be renderable
+            self.assertEqual((overlay["t"], overlay["clock"]), (m["t"], m["clock"]))
+        goal = next(m for m in moments if m["kind"] == "goal")
+        self.assertIsNone(validate_pick({"graphic": "fireworks"}, goal))
+        self.assertIsNone(validate_pick("not json", goal))
+        pick = validate_pick({"graphic": "stat_compare", "stat": "bogus", "title": "Hale nets his 99th", "duration_s": 60}, goal)
+        self.assertEqual((pick["stat"], pick["duration_s"]), ("xg", 12))
+        self.assertNotIn("99", pick["title"])  # invented number in the title -> headline instead
 
     def test_realistic_over_many_matches(self):
         n, goals, shots, passes, acc = 60, 0, 0, 0, 0
