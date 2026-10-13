@@ -1,5 +1,6 @@
 import unittest
 
+from pitchpulse.agents import fact_check, template
 from pitchpulse.moments import MomentDetector
 from pitchpulse.simulator import shot_xg, simulate
 from pitchpulse.stats import MatchStats
@@ -47,6 +48,18 @@ class SimulatorTest(unittest.TestCase):
         for m in moments:
             if m["kind"] == "big_chance":
                 self.assertGreaterEqual(m["evidence"]["xg"], 0.30)
+
+    def test_fact_checker(self):
+        names = {"home": "H", "away": "A"}
+        stats, det, moments = MatchStats(), MomentDetector(names), []
+        for e in simulate(seed=7):
+            stats.update(e)
+            moments += det.check(e, stats)
+        goal = next(m for m in moments if m["kind"] == "goal")  # Hale, 33:14, xG 0.573, 0-1
+        self.assertEqual(fact_check("Hale scores in the 34th minute, a 57% chance, 0-1!", goal), [])
+        self.assertEqual(fact_check("Hale's 12th goal of the season, 0-1.", goal), ["12"])
+        for m in moments:  # the fallback templates must always pass the Fact-Checker
+            self.assertEqual(fact_check(template(m, names), m), [], template(m, names))
 
     def test_realistic_over_many_matches(self):
         n, goals, shots, passes, acc = 60, 0, 0, 0, 0

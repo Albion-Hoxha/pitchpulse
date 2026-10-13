@@ -22,7 +22,8 @@ class MomentDetector:
         def moment(kind_, headline, **evidence):
             nonlocal snap
             snap = snap or stats.snapshot()
-            found.append({"kind": kind_, "clock": e["clock"], "team": side, "headline": headline,
+            found.append({"id": f"{e['id']}:{kind_}", "kind": kind_, "clock": e["clock"], "team": side,
+                          "headline": headline,
                           "evidence": {"event_id": e["id"], **evidence, "teams": snap["teams"]}})
 
         if kind == "shot" and e["outcome"] == "goal":

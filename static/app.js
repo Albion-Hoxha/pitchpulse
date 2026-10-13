@@ -66,20 +66,45 @@ function renderStats(s) {
 function showMoment(m) {
   const li = document.createElement("li");
   li.className = m.team;
-  li.innerHTML = `<time></time><span></span>`;
+  li.id = `m-${m.id}`;
+  li.innerHTML = `<time></time><div><b></b><p class="commentary pending">Agents are on it…</p><p class="analysis" hidden></p></div>`;
   li.querySelector("time").textContent = m.clock;
-  li.querySelector("span").textContent = m.headline;
+  li.querySelector("b").textContent = m.headline;
   $("moments").prepend(li);
+  lowerThird(LABELS[m.kind] || m.kind, m.headline, m.id);
+}
 
-  $("lt-kind").textContent = LABELS[m.kind] || m.kind;
-  $("lt-text").textContent = m.headline;
+// The agents answer a few seconds after the moment; the newest moment's lower-third gets the line.
+function showCommentary(c) {
+  const li = document.getElementById(`m-${c.moment_id}`);
+  if (!li) return;
+  const p = li.querySelector(".commentary");
+  p.textContent = c.text;
+  p.classList.remove("pending");
+  const badge = document.createElement("span");
+  badge.className = `badge ${c.source}`;
+  badge.textContent = c.source === "ai" ? "✓ AI · fact-checked" : "template";
+  badge.title = c.rejected ? `Fact-Checker rejected: ${c.rejected.join(", ")}` : c.error || "";
+  p.append(" ", badge);
+  if (c.analysis) {
+    const a = li.querySelector(".analysis");
+    a.textContent = `Why it matters: ${c.analysis}`;
+    a.hidden = false;
+  }
+  if ($("lower-third").dataset.moment === c.moment_id && !$("lower-third").hidden) $("lt-text").textContent = c.text;
+}
+
+function lowerThird(kind, text, momentId) {
+  $("lt-kind").textContent = kind;
+  $("lt-text").textContent = text;
   const lt = $("lower-third");
+  lt.dataset.moment = momentId;
   lt.hidden = false;
   lt.style.animation = "none";
   void lt.offsetWidth; // restart the slide-in animation
   lt.style.animation = "";
   clearTimeout(lowerThirdTimer);
-  lowerThirdTimer = setTimeout(() => (lt.hidden = true), 6000);
+  lowerThirdTimer = setTimeout(() => (lt.hidden = true), 8000);
 }
 
 function stop() {
@@ -91,12 +116,17 @@ function stop() {
 
 function start() {
   if (ended) reset();
-  const params = new URLSearchParams({ seed: $("seed").value || 0, speed: $("speed").value, start: lastId });
+  const params = new URLSearchParams({
+    seed: $("seed").value || 0, speed: $("speed").value, start: lastId,
+    mode: $("mode").value, favorite: $("favorite").value, language: $("language").value,
+  });
   source = new EventSource(`/api/match/stream?${params}`);
   document.body.classList.add("live");
   $("play").textContent = "⏸ Pause";
   source.onmessage = (msg) => {
-    const { event, stats, moments } = JSON.parse(msg.data);
+    const data = JSON.parse(msg.data);
+    if (data.commentary) return showCommentary(data.commentary);
+    const { event, stats, moments } = data;
     lastId = event.id;
     $("clock").textContent = event.clock;
     drawEvent(event);
@@ -118,11 +148,14 @@ function reset() {
 
 $("play").addEventListener("click", () => (source ? stop() : start()));
 $("seed").addEventListener("change", () => { stop(); reset(); $("play").textContent = "▶ Kick off"; });
-$("speed").addEventListener("change", () => { if (source) { stop(); start(); } });
+["speed", "mode", "favorite", "language"].forEach((id) =>
+  $(id).addEventListener("change", () => { if (source) { stop(); start(); } }));
 
 fetch("/api/teams").then((r) => r.json()).then((t) => {
   $("home-short").textContent = t.home.short;
   $("away-short").textContent = t.away.short;
+  $("fav-home").textContent = t.home.name;
+  $("fav-away").textContent = t.away.name;
   $("home-name").textContent = t.home.name;
   $("away-name").textContent = t.away.name;
 });
