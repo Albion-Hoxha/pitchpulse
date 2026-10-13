@@ -1,5 +1,6 @@
 import unittest
 
+from pitchpulse.moments import MomentDetector
 from pitchpulse.simulator import shot_xg, simulate
 from pitchpulse.stats import MatchStats
 
@@ -32,6 +33,20 @@ class SimulatorTest(unittest.TestCase):
         self.assertGreater(shot_xg(99, 34), shot_xg(88, 34))  # closer is better
         self.assertGreater(shot_xg(94, 34), shot_xg(94, 10))  # central is better
         self.assertLess(shot_xg(75, 34), 0.05)
+
+    def test_moments_match_the_facts(self):
+        stats, det, moments = MatchStats(), MomentDetector({"home": "H", "away": "A"}), []
+        for e in simulate(seed=7):
+            stats.update(e)
+            moments += det.check(e, stats)
+        goals = [m for m in moments if m["kind"] == "goal"]
+        snap = stats.snapshot()["teams"]
+        self.assertEqual(len(goals), snap["home"]["goals"] + snap["away"]["goals"])
+        self.assertEqual(goals[-1]["evidence"]["score"], {s: snap[s]["goals"] for s in ("home", "away")})
+        self.assertEqual(moments[-1]["kind"], "full_time")
+        for m in moments:
+            if m["kind"] == "big_chance":
+                self.assertGreaterEqual(m["evidence"]["xg"], 0.30)
 
     def test_realistic_over_many_matches(self):
         n, goals, shots, passes, acc = 60, 0, 0, 0, 0

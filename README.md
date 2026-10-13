@@ -9,8 +9,8 @@ PitchPulse turns live **synthetic** match events into verified insights, multili
 | --- | --- | --- |
 | Ingest | `pitchpulse/simulator.py` – synthetic, football-realistic event stream (passes, carries, shots with xG and speed, pressures, tackles, interceptions, goals) | done |
 | Interpret | `pitchpulse/stats.py` – **Statistician**: live possession, xG, pass accuracy and difficulty, momentum | done |
-| Explain | Analyst + Fact-Checker agents (Microsoft Foundry) | next |
-| Render | Director agent + broadcast overlay UI | next |
+| Explain | `pitchpulse/moments.py` – rule-based key-moment detection with evidence; Analyst + Fact-Checker agents (Microsoft Foundry) | detection done, agents next |
+| Render | `static/` – live broadcast screen (scorebug, pitch, momentum, lower-thirds, stats); Director agent | screen done, agent next |
 | Personalize | Narrator agent: analyst / casual mode, favourite club and player, language | next |
 
 All clubs and players are fictional. The simulator is calibrated against typical top-flight averages
@@ -21,6 +21,11 @@ All clubs and players are fictional. The simulator is calibrated against typical
 Requires Python 3.11+.
 
 ```bash
-python -m pitchpulse.simulator --seed 7      # print one match as JSON lines
-python -m unittest discover tests            # run the tests
+python -m venv .venv && .venv/Scripts/activate   # macOS/Linux: source .venv/bin/activate
+pip install -r requirements.txt
+python -m uvicorn pitchpulse.server:app          # open http://localhost:8000 and press Kick off
+python -m pitchpulse.simulator --seed 7          # print one match as JSON lines
+python -m unittest discover tests                # run the tests
 ```
+
+The live screen streams `GET /api/match/stream?seed=7&speed=30` (Server-Sent Events: one `{event, stats, moments}` message per match event).
