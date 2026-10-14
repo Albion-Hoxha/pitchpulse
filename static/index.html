@@ -99,6 +99,12 @@
       <h2>Live stats</h2>
       <div class="legend"><span class="home" id="home-name">Home</span><span class="away" id="away-name">Away</span></div>
       <div id="stats"></div>
+      <h2>Ask the match</h2>
+      <form id="ask-form" class="ask">
+        <input id="ask-input" maxlength="200" minlength="3" required placeholder="Who has been most dangerous?" aria-label="Ask a question about the match">
+        <button type="submit">Ask</button>
+      </form>
+      <div id="ask-answer" class="ask-answer" aria-live="polite" hidden></div>
       <section id="recap-box" hidden>
         <h2>Match recap</h2>
         <p id="recap" class="recap"></p>

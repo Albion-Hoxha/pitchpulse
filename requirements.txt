@@ -1,3 +1,7 @@
-fastapi==0.115.6
-uvicorn==0.34.0
+fastapi==0.143.1
+uvicorn==0.54.0
 openai==2.41.0
+agent-framework-core==1.21.0
+agent-framework-openai==1.16.0
+# 1.x: Agent Framework's MCP client does not support the mcp 2.x protocol models yet
+mcp==1.30.0

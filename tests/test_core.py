@@ -1,6 +1,7 @@
 import unittest
 
 from pitchpulse.agents import build_overlay, default_pick, fact_check, template, validate_pick
+from pitchpulse.mcp_server import key_moments, match_snapshot, player_stats, top_players
 from pitchpulse.moments import MomentDetector
 from pitchpulse.simulator import shot_xg, simulate
 from pitchpulse.stats import MatchStats
@@ -90,6 +91,22 @@ class SimulatorTest(unittest.TestCase):
         pick = validate_pick({"graphic": "stat_compare", "stat": "bogus", "title": "Hale nets his 99th", "duration_s": 60}, goal)
         self.assertEqual((pick["stat"], pick["duration_s"]), ("xg", 12))
         self.assertNotIn("99", pick["title"])  # invented number in the title -> headline instead
+
+    def test_mcp_tools(self):
+        snap = match_snapshot(7, 0)
+        self.assertEqual(snap["teams"]["Northbridge FC"]["goals"], 2)  # seed 7 ends 2-2
+        top = top_players("goals", 4, 7, 0)
+        self.assertEqual({p["player"] for p in top}, {"Marcus Hale", "Yusuf Okafor", "Jonah Whitley", "Diego Alvarez"})
+        early, early_snap = key_moments(7, 700), match_snapshot(7, 700)  # the match as it stood at event 700
+        self.assertEqual(sum(m["kind"] == "goal" for m in early), sum(t["goals"] for t in early_snap["teams"].values()))
+        self.assertNotIn("full_time", [m["kind"] for m in early])
+        acc = top_players("pass_accuracy_pct", 11, 7, 0)
+        self.assertEqual([p["pass_accuracy_pct"] for p in acc], sorted((p["pass_accuracy_pct"] for p in acc), reverse=True))
+        self.assertTrue(all(p["passes"] >= 10 for p in acc))
+        self.assertIn("error", player_stats("Lionel Nobody", 7, 0))
+        self.assertIn("error", top_players("salary")[0])
+        with self.assertRaises(ValueError):
+            match_snapshot(-1, 0)
 
     def test_realistic_over_many_matches(self):
         n, goals, shots, passes, acc = 60, 0, 0, 0, 0

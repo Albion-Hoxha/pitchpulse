@@ -209,6 +209,58 @@ async def _direct(facts, moment):
         return default_pick(moment)
 
 
+ASK = (
+    "You are 'Ask the Match', the TV studio's data assistant. Answer the viewer's question about the live match "
+    "using ONLY the match tools, and pass seed={seed} and until_event={until} to every tool call. Answer in "
+    "{language}, max 60 words. {audience} For 'right now' questions use the last-5-minute figures (flow.*, "
+    "momentum), otherwise the match totals. Before answering, check every comparison: the higher number must be "
+    "the one you call higher. If the tools cannot answer it, say so briefly. Quote numbers exactly as the tools "
+    "return them; never invent numbers or players."
+)
+
+
+def _tools_used(response):
+    return sorted({c.name for m in getattr(response, "messages", []) for c in getattr(m, "contents", [])
+                   if getattr(c, "type", "") == "function_call" and getattr(c, "name", None)})
+
+
+async def ask_match(question, seed, until_event, prefs, names, mcp_url):
+    """Ask-the-Match agent (Microsoft Agent Framework) that queries the match MCP server, then the
+    Fact-Checker verifies its answer against the same match data."""
+    from .mcp_server import key_moments, match_snapshot, player_stats
+
+    if CLIENT is None:
+        return {"answer": "The AI agents are not configured on this server.", "source": "unavailable", "tools": []}
+    snapshot = match_snapshot(seed, until_event)
+    evidence = {"snapshot": snapshot, "moments": key_moments(seed, until_event),
+                "players": [player_stats(p, seed, until_event) for p in ROSTER]}
+    check = {"evidence": evidence, "clock": snapshot["clock"]}
+    try:
+        from agent_framework import Agent, MCPStreamableHTTPTool
+        from agent_framework.openai import OpenAIChatCompletionClient
+
+        async with MCPStreamableHTTPTool(name="match", url=mcp_url) as match_tools:
+            agent = Agent(OpenAIChatCompletionClient(model=MODEL, async_client=CLIENT), name="AskTheMatch",
+                          instructions=ASK.format(seed=seed, until=until_event, audience=_audience(prefs, names),
+                                                  language=prefs.get("language", "English")),
+                          tools=match_tools)
+            response = await agent.run(question)
+            answer, tools = response.text.strip(), _tools_used(response)
+            bad = fact_check(answer, check)
+            if bad:  # one rewrite, as for the Narrator
+                response = await agent.run(f"{question}\n\n(Fact-Checker: your previous answer used unsupported "
+                                           f"facts {bad}. Answer again using only tool results.)")
+                answer, tools = response.text.strip(), sorted(set(tools) | set(_tools_used(response)))
+                bad = fact_check(answer, check)
+    except Exception as exc:  # the question goes unanswered, the broadcast carries on
+        return {"answer": "Sorry, the data desk could not answer that right now.", "source": "error",
+                "error": type(exc).__name__, "tools": []}
+    if bad or not answer:
+        return {"answer": "That answer could not be verified against the match data.", "source": "rejected",
+                "rejected": bad, "tools": tools}
+    return {"answer": answer, "source": "ai", "tools": tools}
+
+
 async def commentate(moment, names, prefs):
     """Run the agents for one moment: Analyst and Director in parallel, then Narrator + Fact-Checker."""
     fallback = {"text": template(moment, names), "source": "template",

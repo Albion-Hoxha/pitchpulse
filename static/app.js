@@ -211,6 +211,44 @@ function reset() {
   moveBall([W / 2, H / 2]);
 }
 
+// Ask the Match: the agent answers from the match as it stands at the last event on screen.
+$("ask-form").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const box = $("ask-answer"), button = $("ask-form").querySelector("button");
+  box.hidden = false;
+  box.className = "ask-answer pending";
+  box.textContent = "Asking the data desk…";
+  button.disabled = true;
+  try {
+    const r = await fetch("/api/ask", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        question: $("ask-input").value, seed: Number($("seed").value) || 0, until_event: lastId,
+        mode: $("mode").value, favorite: $("favorite").value, language: $("language").value, player: $("player").value,
+      }),
+    });
+    const a = await r.json();
+    if (!r.ok) throw new Error(a.detail ? JSON.stringify(a.detail) : r.statusText);
+    box.className = "ask-answer";
+    box.textContent = a.answer;
+    const badge = document.createElement("span");
+    badge.className = `badge ${a.source === "ai" ? "ai" : "template"}`;
+    badge.textContent = a.source === "ai" ? "✓ AI · fact-checked" : a.source;
+    box.append(" ", badge);
+    if (a.tools?.length) {
+      const tools = document.createElement("span");
+      tools.className = "tools";
+      tools.textContent = `Data via MCP: ${a.tools.join(", ")}`;
+      box.append(tools);
+    }
+  } catch (err) {
+    box.className = "ask-answer";
+    box.textContent = `Could not ask: ${err.message}`;
+  } finally {
+    button.disabled = false;
+  }
+});
+
 $("play").addEventListener("click", () => (source ? stop() : start()));
 $("seed").addEventListener("change", () => { stop(); reset(); $("play").textContent = "▶ Kick off"; });
 ["speed", "mode", "favorite", "language", "player"].forEach((id) =>

@@ -16,6 +16,14 @@ PitchPulse turns live **synthetic** match events into verified insights, multili
 Agents run on Azure OpenAI in Microsoft Foundry (`gpt-4.1-mini`). Without credentials, or if a call fails, every step
 falls back to a deterministic template, so the broadcast never stops.
 
+### Ask the Match (Microsoft Agent Framework + MCP)
+
+Viewers can ask questions such as *"Which team is pressing harder right now?"*. An **Agent Framework** agent answers
+by calling the **match MCP server** (`pitchpulse/mcp_server.py`, streamable HTTP at `/mcp/`), and the Fact-Checker
+verifies the answer against the same data. MCP tools: `match_snapshot`, `player_stats`, `top_players`, `key_moments` –
+each takes the match `seed` and `until_event`, so any MCP client (GitHub Copilot, a Foundry agent) can query the
+match exactly as it stood at any moment.
+
 All clubs and players are fictional. The simulator is calibrated against typical top-flight averages
 (~2.6 goals, ~20 shots, ~1,100 passes and ~77% pass accuracy per match).
 

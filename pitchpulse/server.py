@@ -6,11 +6,13 @@ import asyncio
 import json
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, Field
 
-from .agents import ROSTER, commentate
+from .agents import ROSTER, ask_match, commentate
+from .mcp_server import MAX_SEED, mcp
 from .moments import MomentDetector
 from .simulator import AWAY, HOME, simulate
 from .stats import MatchStats
@@ -19,8 +21,12 @@ STATIC = Path(__file__).parent.parent / "static"
 MAX_SLEEP = 1.5  # seconds; keeps long gaps (half-time) short on screen
 NAMES = {"home": HOME.name, "away": AWAY.name}
 
-app = FastAPI(title="PitchPulse")
+# MCP endpoint at /mcp/ (streamable HTTP). shortcut: DNS-rebinding protection allows localhost only; set the
+# public host in transport_security when deploying to Azure.
+mcp_app = mcp.streamable_http_app()
+app = FastAPI(title="PitchPulse", lifespan=lambda _: mcp.session_manager.run())
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
+app.mount("/mcp", mcp_app)
 
 
 @app.get("/")
@@ -35,8 +41,27 @@ def teams():
             for side, t in (("home", HOME), ("away", AWAY))}
 
 
+class Question(BaseModel):
+    question: str = Field(min_length=3, max_length=200)
+    seed: int = Field(7, ge=0, le=MAX_SEED)
+    until_event: int = Field(0, ge=0)
+    mode: str = Field("casual", pattern="^(casual|analyst)$")
+    favorite: str = Field("", pattern="^(home|away)?$")
+    language: str = Field("English", pattern="^[A-Za-z ]{2,30}$")
+    player: str = ""
+
+
+@app.post("/api/ask")
+async def ask(q: Question, request: Request):
+    """Ask the Match: an Agent Framework agent answers from the match MCP server, fact-checked."""
+    if q.player and q.player not in ROSTER:
+        raise HTTPException(422, "player must be a name from /api/teams")
+    prefs = {"mode": q.mode, "favorite": q.favorite, "language": q.language, "player": q.player}
+    return await ask_match(q.question, q.seed, q.until_event, prefs, NAMES, f"{request.base_url}mcp/")
+
+
 @app.get("/api/match/stream")
-async def stream(seed: int = 7, speed: float = Query(30, gt=0, le=1000), start: int = Query(0, ge=0),
+async def stream(seed: int = Query(7, ge=0, le=MAX_SEED), speed: float = Query(30, gt=0, le=1000), start: int = Query(0, ge=0),
                  mode: str = Query("casual", pattern="^(casual|analyst)$"),
                  favorite: str = Query("", pattern="^(home|away)?$"),
                  language: str = Query("English", pattern="^[A-Za-z ]{2,30}$"),
