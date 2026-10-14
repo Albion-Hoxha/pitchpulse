@@ -30,10 +30,11 @@ MODES = {
 ANALYST = (
     "You are the Analyst in a football TV control room. Given a key moment and its evidence (live stats), "
     "explain in ONE sentence (max 30 words, English) why it matters right now: scoreline, momentum, chance "
-    "quality, territory. Use only numbers that appear in the evidence."
+    "quality, control vs chaos (flow.chaos: share of possessions lost), pressing (flow.press_per_min) and tempo "
+    "(flow.tempo_ppm, passes per minute). Use only numbers that appear in the evidence."
 )
 
-GRAPHICS = ("score_update", "stat_compare", "player_card", "momentum")
+GRAPHICS = ("score_update", "stat_compare", "player_card", "momentum", "flow")
 STAT_KEYS = ("possession_pct", "xg", "shots", "on_target", "pass_accuracy_pct", "final_third_passes",
              "pressures", "tackles")
 DIRECTOR = (
@@ -136,6 +137,12 @@ def template(moment, names):
         return f"Big chance for {ev['player']} ({ev['xg']:.2f} xG) – {ev['outcome'].replace('_', ' ')}."
     if kind == "momentum_shift":
         return f"{names[moment['team']]} are on top: momentum {abs(ev['momentum'])} in their favour over the last five minutes."
+    if kind == "flow_shift":
+        press = ev["press_per_min"]
+        lead = (f"{names[moment['team']]} have control" if ev["state"] == "control"
+                else "Chaos: the ball keeps changing hands")
+        return (f"{lead} – chaos index {ev['chaos']}, {ev['tempo_ppm']} passes a minute; pressing "
+                f"{names['home']} {press['home']}/min, {names['away']} {press['away']}/min.")
     if kind == "player_focus":
         p = ev["player_stats"]
         return (f"{ev['player']}: {ev['action']}. {p['passes_completed']}/{p['passes']} passes, "
@@ -146,7 +153,7 @@ def template(moment, names):
 
 def default_pick(moment):
     graphic = {"goal": "score_update", "big_chance": "player_card", "player_focus": "player_card",
-               "momentum_shift": "momentum"}.get(moment["kind"], "stat_compare")
+               "momentum_shift": "momentum", "flow_shift": "flow"}.get(moment["kind"], "stat_compare")
     return {"graphic": graphic, "stat": "xg", "title": moment["headline"][:40], "duration_s": 8}
 
 
@@ -176,6 +183,8 @@ def build_overlay(pick, moment):
         data["player"] = {"name": ev["player"], "team": moment["team"], **ev["player_stats"]}
     elif pick["graphic"] == "momentum":
         data["momentum"] = ev["momentum"]
+    elif pick["graphic"] == "flow":
+        data["flow"] = ev["flow"]
     elif pick["graphic"] == "score_update":
         data.update({k: ev[k] for k in ("player", "xg", "speed_kmh") if k in ev})
     return {"moment_id": moment["id"], "t": moment["t"], "period": moment["period"], "clock": moment["clock"],

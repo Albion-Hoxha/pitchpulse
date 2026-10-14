@@ -8,7 +8,7 @@ PitchPulse turns live **synthetic** match events into verified insights, multili
 | Stage | Component | Status |
 | --- | --- | --- |
 | Ingest | `pitchpulse/simulator.py` – synthetic, football-realistic event stream (passes, carries, shots with xG and speed, pressures, tackles, interceptions, goals) | done |
-| Interpret | `pitchpulse/stats.py` – **Statistician**: live possession, xG, pass accuracy and difficulty, momentum | done |
+| Interpret | `pitchpulse/stats.py` – **Statistician**: live possession, xG, pass accuracy and difficulty, momentum, and **control vs chaos** (share of possessions lost, tempo, pressing per minute over the last 5 minutes) | done |
 | Explain | `pitchpulse/moments.py` – rule-based key-moment detection with evidence; `pitchpulse/agents.py` – **Analyst** explains why it matters, **Fact-Checker** rejects any number or player not in the evidence | done |
 | Render | **Director** agent picks the graphic and its on-screen time → timed, machine-readable overlay JSON; `static/` – live broadcast screen (scorebug, pitch, momentum, lower-thirds, graphics, stats) | done |
 | Personalize | **Narrator** agent: casual / analyst mode, club supported, followed player (player cam), 7 languages; full-time **match recap** | done |

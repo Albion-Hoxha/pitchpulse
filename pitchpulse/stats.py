@@ -7,6 +7,9 @@ from collections import deque
 
 MOMENTUM_WINDOW = 5 * 60  # seconds
 FINAL_THIRD_X = 70.0
+HALF_SECONDS = 45 * 60
+# Chaos index across 50 simulated matches: median ~28, 10th/90th percentiles ~22/35.
+CHAOS_LEVEL, CONTROL_LEVEL = 35, 22
 
 
 def pass_difficulty(e):
@@ -26,6 +29,8 @@ class MatchStats:
         self.team = {"home": _blank(), "away": _blank()}
         self.players = {}  # name -> {"team", "passes", "passes_completed", "shots", "xg", "goals"}
         self.recent = deque()  # (t, side, threat) inside the momentum window
+        self.flow_events = deque()  # (t, side, kind, ok) inside the same window, for control vs chaos
+        self.period_start = 0.0
         self.last_t, self.last_poss = 0.0, "home"
         self.clock, self.period = "0:00", 1
 
@@ -73,11 +78,34 @@ class MatchStats:
         elif kind == "interception":
             s["interceptions"] += 1
 
+        if kind == "half_time":  # the 2nd-half clock restarts at 45:00, so rolling windows start afresh
+            self.recent.clear()
+            self.flow_events.clear()
+            self.period_start = HALF_SECONDS
         if threat:
             self.recent.append((e["t"], side, threat))
-        while self.recent and self.recent[0][0] < e["t"] - MOMENTUM_WINDOW:
-            self.recent.popleft()
+        if kind in ("pass", "tackle", "interception", "pressure"):
+            self.flow_events.append((e["t"], side, kind, e.get("outcome") != "incomplete"))
+        for window in (self.recent, self.flow_events):
+            while window and window[0][0] < e["t"] - MOMENTUM_WINDOW:
+                window.popleft()
         return e
+
+    def flow(self):
+        """Control vs chaos over the last 5 minutes: how often the ball changes hands compared
+        with completed passes, the game's tempo, and how hard each side is pressing."""
+        minutes = max(min(self.last_t - self.period_start, MOMENTUM_WINDOW), 60) / 60
+        completed = sum(1 for _, _, k, ok in self.flow_events if k == "pass" and ok)
+        turnovers = sum(1 for _, _, k, _ in self.flow_events if k in ("tackle", "interception"))
+        passes = sum(1 for _, _, k, _ in self.flow_events if k == "pass")
+        chaos = round(100 * turnovers / (completed + turnovers)) if completed + turnovers else 0
+        state = "chaos" if chaos >= CHAOS_LEVEL else "control" if chaos <= CONTROL_LEVEL else "balanced"
+        per_side = lambda kind, ok=None: {s: sum(1 for _, side, k, good in self.flow_events
+                                                 if k == kind and side == s and ok in (None, good))
+                                          for s in ("home", "away")}
+        press = {s: round(n / minutes, 1) for s, n in per_side("pressure").items()}
+        return {"chaos": chaos, "state": state, "tempo_ppm": round(passes / minutes, 1), "press_per_min": press,
+                "completed_passes": per_side("pass", True)}
 
     def momentum(self):
         """-100 (away dominating) .. +100 (home dominating) over the last 5 minutes."""
@@ -87,7 +115,7 @@ class MatchStats:
 
     def snapshot(self):
         total = sum(t["possession_seconds"] for t in self.team.values()) or 1
-        out = {"clock": self.clock, "period": self.period, "momentum": self.momentum(), "teams": {}}
+        out = {"clock": self.clock, "period": self.period, "momentum": self.momentum(), "flow": self.flow(), "teams": {}}
         for side, t in self.team.items():
             out["teams"][side] = {
                 "goals": t["goals"], "shots": t["shots"], "on_target": t["on_target"],

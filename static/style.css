@@ -71,6 +71,10 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 }
 .momentum-track { position: relative; height: 8px; margin-top: 4px; background: var(--line); border-radius: 4px; }
 .momentum-track::after { content: ""; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: var(--muted); }
+.flow-label { display: flex; justify-content: space-between; margin-top: 8px; }
+#flow-state { color: var(--text); font-weight: 700; text-transform: capitalize; }
+.flow-track { position: relative; height: 8px; margin-top: 4px; border-radius: 4px; background: linear-gradient(90deg, #3ec1f3, #2b3a55 50%, #f7c948); }
+#flow-marker { position: absolute; top: -3px; width: 4px; height: 14px; margin-left: -2px; background: #fff; border-radius: 2px; left: 50%; transition: left 0.4s; }
 #momentum-bar { position: absolute; top: 0; bottom: 0; left: 50%; width: 0; border-radius: 4px; transition: all 0.4s; }
 
 .lower-third {

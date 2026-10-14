@@ -12,13 +12,16 @@ const STAT_ROWS = [
   ["Tackles won", (t) => t.tackles, String],
   ["Fastest shot", (t) => t.top_shot_kmh, (v) => (v ? `${v} km/h` : "–")],
 ];
-const LABELS = { goal: "Goal", big_chance: "Big chance", momentum_shift: "Momentum", half_time: "Half-time", full_time: "Full-time", player_focus: "Player cam" };
+const LABELS = { goal: "Goal", big_chance: "Big chance", momentum_shift: "Momentum", flow_shift: "Control vs chaos", half_time: "Half-time", full_time: "Full-time", player_focus: "Player cam" };
 const STAT_NAMES = {
   possession_pct: "Possession %", xg: "Expected goals (xG)", shots: "Shots", on_target: "Shots on target",
   pass_accuracy_pct: "Pass accuracy %", final_third_passes: "Final-third passes", pressures: "Pressures", tackles: "Tackles won",
 };
 
 let source = null, lastId = 0, ended = false, lowerThirdTimer = null, graphicTimer = null, teamsInfo = null;
+
+// Chaos index runs roughly 12–50 in practice; map that span onto the meter.
+const flowPos = (chaos) => Math.min(Math.max(((chaos - 12) / 38) * 100, 0), 100);
 
 // Agent text is model output: always insert it as text, never as HTML.
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -64,6 +67,12 @@ function renderStats(s) {
     return `<div class="stat"><div class="stat-row"><b>${fmt(hv)}</b><span>${label}</span><b>${fmt(av)}</b></div>
       <div class="stat-bar"><div class="home" style="width:${(100 * hv) / total}%"></div><div class="away" style="width:${(100 * av) / total}%"></div></div></div>`;
   }).join("");
+  const f = s.flow;
+  $("stats").insertAdjacentHTML("beforeend", `<div class="stat"><div class="stat-row"><b>${f.press_per_min.home}</b>
+    <span>Pressing / min (last 5')</span><b>${f.press_per_min.away}</b></div></div>
+    <div class="stat"><div class="stat-row"><span>Tempo</span><b>${f.tempo_ppm} passes / min</b></div></div>`);
+  $("flow-state").textContent = f.state;
+  $("flow-marker").style.left = `${flowPos(f.chaos)}%`;
   const m = s.momentum, bar = $("momentum-bar");
   bar.style.width = `${Math.abs(m) / 2}%`;
   bar.style.left = m >= 0 ? "50%" : `${50 - Math.abs(m) / 2}%`;
@@ -123,6 +132,12 @@ function renderGraphic(o) {
     body = `<div class="g-big ${esc(p.team)}">${esc(p.name)}</div>
       <div class="g-grid"><span>Passes<b>${p.passes_completed}/${p.passes}</b></span><span>Shots<b>${p.shots}</b></span>
       <span>xG<b>${Number(p.xg).toFixed(2)}</b></span><span>Goals<b>${p.goals}</b></span></div>`;
+  } else if (o.graphic === "flow") {
+    const f = d.flow;
+    body = `<div class="g-big">${esc(f.state)}</div>
+      <div class="flow-track"><div id="g-flow-marker" style="position:absolute;top:-3px;width:4px;height:14px;background:#fff;border-radius:2px;left:${flowPos(f.chaos)}%"></div></div>
+      <div class="g-grid"><span>Chaos index<b>${f.chaos}</b></span><span>Tempo<b>${f.tempo_ppm}/min</b></span>
+      <span>${short("home")} press<b>${f.press_per_min.home}/min</b></span><span>${short("away")} press<b>${f.press_per_min.away}/min</b></span></div>`;
   } else {
     const m = d.momentum;
     body = `<div class="g-label">Momentum · last 5 min</div>

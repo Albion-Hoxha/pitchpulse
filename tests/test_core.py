@@ -75,10 +75,15 @@ class SimulatorTest(unittest.TestCase):
         self.assertEqual(full["kind"], "full_time")
         self.assertEqual(sum(t["kind"] == "goal" for t in full["evidence"]["timeline"]), sum(full["evidence"]["score"].values()))
         self.assertEqual(fact_check("Hale opened the scoring in the 34th minute.", full), [])
+        flow = [m for m in moments if m["kind"] == "flow_shift"]
+        self.assertTrue(1 <= len(flow) <= 12, len(flow))
+        self.assertTrue(all(m["evidence"]["state"] in ("control", "chaos") for m in flow))
         for m in moments:
             self.assertEqual(fact_check(template(m, names), m), [], template(m, names))
-            overlay = build_overlay(default_pick(m), m)  # every default graphic must be renderable
-            self.assertEqual((overlay["t"], overlay["clock"]), (m["t"], m["clock"]))
+            self.assertTrue(0 <= m["evidence"]["flow"]["chaos"] <= 100)
+            for graphic in ("score_update", "stat_compare", "momentum", "flow"):  # any Director choice renders
+                overlay = build_overlay({**default_pick(m), "graphic": graphic}, m)
+                self.assertEqual((overlay["t"], overlay["clock"]), (m["t"], m["clock"]))
         goal = next(m for m in moments if m["kind"] == "goal")
         self.assertIsNone(validate_pick({"graphic": "fireworks"}, goal))
         self.assertIsNone(validate_pick("not json", goal))
