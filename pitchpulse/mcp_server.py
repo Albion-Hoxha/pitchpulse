@@ -4,9 +4,11 @@ a Foundry agent) can query a synthetic match as it stood at any event.
 Matches are deterministic per seed, so each call replays the match up to
 `until_event` (an event id from the live stream; 0 = the whole match).
 """
+import os
 from functools import lru_cache
 
 from mcp.server.fastmcp import FastMCP  # mcp 1.x: Agent Framework's MCP client does not speak 2.x yet
+from mcp.server.transport_security import TransportSecuritySettings
 
 from .moments import MomentDetector
 from .simulator import AWAY, HOME, simulate
@@ -17,12 +19,18 @@ ROSTER = {name: (side, pos) for side, team in (("home", HOME), ("away", AWAY)) f
 METRICS = ("passes", "passes_completed", "pass_accuracy_pct", "shots", "xg", "goals")
 MIN_PASSES_FOR_ACCURACY = 10  # so a 2/2 passer doesn't top the accuracy table
 MAX_SEED = 1_000_000
+# DNS-rebinding protection: localhost always, plus the public host(s) the app is deployed on.
+PUBLIC_HOSTS = [h.strip() for h in os.getenv("MCP_ALLOWED_HOSTS", "").split(",") if h.strip()]
+SECURITY = TransportSecuritySettings(
+    allowed_hosts=["127.0.0.1:*", "localhost:*", "[::1]:*", *PUBLIC_HOSTS],
+    allowed_origins=["http://127.0.0.1:*", "http://localhost:*", *(f"https://{h}" for h in PUBLIC_HOSTS)],
+)
 
 mcp = FastMCP(
     "pitchpulse-match",
     instructions="Live statistics for PitchPulse synthetic football matches. Every tool takes the match `seed` "
                  "and `until_event` (event id to replay up to; 0 for the full match).",
-    streamable_http_path="/", stateless_http=True, json_response=True,
+    streamable_http_path="/", stateless_http=True, json_response=True, transport_security=SECURITY,
 )
 
 

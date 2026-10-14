@@ -21,8 +21,7 @@ STATIC = Path(__file__).parent.parent / "static"
 MAX_SLEEP = 1.5  # seconds; keeps long gaps (half-time) short on screen
 NAMES = {"home": HOME.name, "away": AWAY.name}
 
-# MCP endpoint at /mcp/ (streamable HTTP). shortcut: DNS-rebinding protection allows localhost only; set the
-# public host in transport_security when deploying to Azure.
+# MCP endpoint at /mcp/ (streamable HTTP); public hosts come from MCP_ALLOWED_HOSTS.
 mcp_app = mcp.streamable_http_app()
 app = FastAPI(title="PitchPulse", lifespan=lambda _: mcp.session_manager.run())
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
@@ -57,7 +56,8 @@ async def ask(q: Question, request: Request):
     if q.player and q.player not in ROSTER:
         raise HTTPException(422, "player must be a name from /api/teams")
     prefs = {"mode": q.mode, "favorite": q.favorite, "language": q.language, "player": q.player}
-    return await ask_match(q.question, q.seed, q.until_event, prefs, NAMES, f"{request.base_url}mcp/")
+    port = request.scope["server"][1]  # the agent reaches our own MCP server directly, not via the public ingress
+    return await ask_match(q.question, q.seed, q.until_event, prefs, NAMES, f"http://127.0.0.1:{port}/mcp/")
 
 
 @app.get("/api/match/stream")
