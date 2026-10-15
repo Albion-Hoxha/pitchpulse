@@ -286,8 +286,8 @@ ASK = (
     "using ONLY the match tools, and pass seed={seed} and until_event={until} to every tool call. Answer in "
     "{language}, max 60 words. {audience} For 'right now' questions use the last-5-minute figures (flow.*, "
     "momentum); for one half use match_snapshot's by_half figures; otherwise the match totals. Never predict "
-    "results of this or any other match. Before "
-    "answering, check every comparison: the higher number must be the one you call higher. If the tools cannot "
+    "results of this or any other match. Back every comparison (more, fewer, better, worse) with the numbers being "
+    "compared, and check it: the higher number must be the one you call higher. If the tools cannot "
     "answer it, say so briefly. Quote numbers exactly as the tools return them; never invent numbers or players."
 )
 
