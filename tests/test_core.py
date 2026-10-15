@@ -1,4 +1,8 @@
+import os
 import unittest
+from unittest.mock import patch
+
+from pitchpulse import agents
 
 from pitchpulse.agents import build_overlay, default_pick, fact_check, template, validate_pick
 from pitchpulse.mcp_server import key_moments, match_snapshot, player_stats, top_players
@@ -107,6 +111,11 @@ class SimulatorTest(unittest.TestCase):
         self.assertIn("error", top_players("salary")[0])
         with self.assertRaises(ValueError):
             match_snapshot(-1, 0)
+
+    def test_keyless_client_builds(self):
+        # The deployed app has no key and signs in with its managed identity; that path must import cleanly.
+        with patch.dict(os.environ, {"AZURE_OPENAI_ENDPOINT": "https://x.services.ai.azure.com", "AZURE_OPENAI_API_KEY": ""}):
+            self.assertIsNotNone(agents._client())
 
     def test_realistic_over_many_matches(self):
         n, goals, shots, passes, acc = 60, 0, 0, 0, 0

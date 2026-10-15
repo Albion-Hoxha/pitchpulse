@@ -12,6 +12,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; } /* overlays set display: flex, which would otherwise beat `hidden` */
 body {
   margin: 0;
   background: var(--bg);
