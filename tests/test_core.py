@@ -38,6 +38,16 @@ class SimulatorTest(unittest.TestCase):
                 if k in e:
                     self.assertTrue(0 <= e[k] <= 105, e)
 
+    def test_halves_add_up(self):
+        stats = MatchStats()
+        for e in simulate(seed=7):
+            stats.update(e)
+        totals, halves = stats.snapshot()["teams"], stats.by_half()
+        for side in ("home", "away"):
+            for key in ("goals", "shots", "passes", "pressures", "tackles"):
+                self.assertEqual(halves["first_half"][side][key] + halves["second_half"][side][key], totals[side][key])
+        self.assertEqual(sum(t["possession_pct"] for t in halves["second_half"].values()), 100)
+
     def test_xg_is_sane(self):
         self.assertGreater(shot_xg(99, 34), shot_xg(88, 34))  # closer is better
         self.assertGreater(shot_xg(94, 34), shot_xg(94, 10))  # central is better

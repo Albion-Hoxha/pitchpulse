@@ -59,9 +59,13 @@ def _player_row(name, record):
 def match_snapshot(seed: int = 7, until_event: int = 0) -> dict:
     """Score, clock and live team stats: goals, shots, on target, xG, possession %, passes, pass accuracy %,
     final-third passes, pressures, tackles, fastest shot, momentum (-100 away .. +100 home over the last
-    5 minutes) and flow (control vs chaos index, tempo in passes/min, pressing per minute)."""
-    snap = replay(seed, until_event)[0].snapshot()
-    snap["teams"] = {NAMES[side]: {"side": side, **t} for side, t in snap["teams"].items()}
+    5 minutes), flow (control vs chaos index, tempo in passes/min, pressing per minute) and by_half (the same
+    team stats for the first and, once started, the second half)."""
+    stats = replay(seed, until_event)[0]
+    by_team = lambda teams: {NAMES[side]: {"side": side, **t} for side, t in teams.items()}
+    snap = stats.snapshot()
+    snap["teams"] = by_team(snap["teams"])
+    snap["by_half"] = {half: by_team(teams) for half, teams in stats.by_half().items()}
     return snap
 
 

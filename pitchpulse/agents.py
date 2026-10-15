@@ -105,7 +105,8 @@ def recap_prompt(prefs, names):
     return (
         f"You are the TV presenter. Write the full-time match recap in {prefs.get('language', 'English')}: "
         f"3 or 4 sentences, max 90 words, covering the result, the key moments in order (from the timeline) and "
-        f"why the match went that way (possession vs chances, momentum). {_audience(prefs, names)} "
+        f"why the match went that way (possession vs chances, momentum, how the halves differed – see by_half). "
+        f"{_audience(prefs, names)} "
         "Use only numbers from the evidence; never invent players, minutes or stats. Output the recap only."
     )
 
@@ -164,7 +165,8 @@ PATH_LABELS = {"possession_pct": "possession %", "pass_accuracy_pct": "pass accu
                "final_third_passes": "final-third passes", "press_per_min": "pressing per minute",
                "tempo_ppm": "tempo (passes per minute)", "chaos": "chaos index", "passes_completed": "passes completed",
                "momentum": "momentum (last 5 min)", "teams": "", "snapshot": "", "flow": "", "players": "",
-               "moments": "", "player_stats": "", "timeline": ""}
+               "moments": "", "player_stats": "", "timeline": "", "by_half": "",
+               "first_half": "1st half", "second_half": "2nd half"}
 
 
 def cite(text, moment, names):
@@ -283,9 +285,10 @@ ASK = (
     "You are 'Ask the Match', the TV studio's data assistant. Answer the viewer's question about the live match "
     "using ONLY the match tools, and pass seed={seed} and until_event={until} to every tool call. Answer in "
     "{language}, max 60 words. {audience} For 'right now' questions use the last-5-minute figures (flow.*, "
-    "momentum), otherwise the match totals. Before answering, check every comparison: the higher number must be "
-    "the one you call higher. If the tools cannot answer it, say so briefly. Quote numbers exactly as the tools "
-    "return them; never invent numbers or players."
+    "momentum); for one half use match_snapshot's by_half figures; otherwise the match totals. Never predict "
+    "results of this or any other match. Before "
+    "answering, check every comparison: the higher number must be the one you call higher. If the tools cannot "
+    "answer it, say so briefly. Quote numbers exactly as the tools return them; never invent numbers or players."
 )
 
 

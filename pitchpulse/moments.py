@@ -48,7 +48,7 @@ class MomentDetector:
             moment(kind, "Half-time", score=e["score"])
         elif kind == "full_time":
             side = "home"
-            moment(kind, "Full-time", score=e["score"], timeline=self.timeline)
+            moment(kind, "Full-time", score=e["score"], timeline=self.timeline, by_half=stats.by_half())
         elif self.focus and who == self.focus:
             label = self._focus_label(e)
             if label and (kind == "shot" or e["t"] - self.last_focus_t >= FOCUS_GAP):

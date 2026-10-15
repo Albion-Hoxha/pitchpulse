@@ -18,9 +18,10 @@ INSTRUCTIONS = (
     "message starts with the match seed, until_event, answer language and audience, then the viewer's question. "
     "Answer using ONLY the match tools, passing that seed and until_event to every tool call. Max 60 words, in the "
     "requested language, for the requested audience. For 'right now' questions use the last-5-minute figures "
-    "(flow.*, momentum), otherwise the match totals. Before answering, check every comparison: the higher number must "
-    "be the one you call higher. Quote numbers exactly as the tools return them; never invent numbers or players. "
-    "If the tools cannot answer it, say so briefly."
+    "(flow.*, momentum); for one half use match_snapshot's by_half figures; otherwise the match totals. Never "
+    "predict results of this or any other match. Before "
+    "answering, check every comparison: the higher number must be the one you call higher. Quote numbers exactly as "
+    "the tools return them; never invent numbers or players. If the tools cannot answer it, say so briefly."
 )
 
 

@@ -27,6 +27,7 @@ def _blank():
 class MatchStats:
     def __init__(self):
         self.team = {"home": _blank(), "away": _blank()}
+        self.halves = {p: {"home": _blank(), "away": _blank()} for p in (1, 2)}  # same counters, per half
         self.players = {}  # name -> {"team", "passes", "passes_completed", "shots", "xg", "goals"}
         self.recent = deque()  # (t, side, threat) inside the momentum window
         self.flow_events = deque()  # (t, side, kind, ok) inside the same window, for control vs chaos
@@ -40,43 +41,51 @@ class MatchStats:
 
     def update(self, e):
         """Fold one event into the running totals and return it, enriched where useful."""
-        if e["type"] not in ("half_time", "full_time"):
-            self.team[self.last_poss]["possession_seconds"] += max(e["t"] - self.last_t, 0)
+        if e["type"] not in ("half_time", "full_time"):  # time since the last event belongs to its half
+            held = max(e["t"] - self.last_t, 0)
+            for t in (self.team, self.halves[self.period]):
+                t[self.last_poss]["possession_seconds"] += held
         self.last_t, self.last_poss = e["t"], e["possession"]
         self.clock, self.period = e["clock"], e["period"]
-        side, kind, s = e["team"], e["type"], self.team[e["team"]]
+        side, kind = e["team"], e["type"]
+        counters = (self.team[side], self.halves[self.period][side])
         threat = 0.0
+
+        def bump(key, amount=1):
+            for c in counters:
+                c[key] += amount
 
         if kind == "pass":
             p = self._player(side, e["player"])
-            s["passes"] += 1
+            bump("passes")
             p["passes"] += 1
             e["difficulty"] = pass_difficulty(e)
             if e["outcome"] == "complete":
-                s["passes_completed"] += 1
+                bump("passes_completed")
                 p["passes_completed"] += 1
                 if e["end_x"] > FINAL_THIRD_X:
-                    s["final_third_passes"] += 1
+                    bump("final_third_passes")
                     threat = 0.02
         elif kind == "shot":
             p = self._player(side, e["player"])
-            s["shots"] += 1
-            s["xg"] += e["xg"]
+            bump("shots")
+            bump("xg", e["xg"])
             p["shots"] += 1
             p["xg"] += e["xg"]
-            s["top_shot_kmh"] = max(s["top_shot_kmh"], e["speed_kmh"])
+            for c in counters:
+                c["top_shot_kmh"] = max(c["top_shot_kmh"], e["speed_kmh"])
             if e["outcome"] in ("goal", "saved"):
-                s["on_target"] += 1
+                bump("on_target")
             if e["outcome"] == "goal":
-                s["goals"] += 1
+                bump("goals")
                 p["goals"] += 1
             threat = e["xg"]
         elif kind == "pressure":
-            s["pressures"] += 1
+            bump("pressures")
         elif kind == "tackle":
-            s["tackles"] += 1
+            bump("tackles")
         elif kind == "interception":
-            s["interceptions"] += 1
+            bump("interceptions")
 
         if kind == "half_time":  # the 2nd-half clock restarts at 45:00, so rolling windows start afresh
             self.recent.clear()
@@ -114,17 +123,26 @@ class MatchStats:
         return 0 if h + a == 0 else round(100 * (h - a) / (h + a))
 
     def snapshot(self):
-        total = sum(t["possession_seconds"] for t in self.team.values()) or 1
-        out = {"clock": self.clock, "period": self.period, "momentum": self.momentum(), "flow": self.flow(), "teams": {}}
-        for side, t in self.team.items():
-            out["teams"][side] = {
-                "goals": t["goals"], "shots": t["shots"], "on_target": t["on_target"],
-                "xg": round(t["xg"], 2),
-                "possession_pct": round(100 * t["possession_seconds"] / total),
-                "passes": t["passes"],
-                "pass_accuracy_pct": round(100 * t["passes_completed"] / t["passes"]) if t["passes"] else 0,
-                "final_third_passes": t["final_third_passes"],
-                "pressures": t["pressures"], "tackles": t["tackles"], "interceptions": t["interceptions"],
-                "top_shot_kmh": t["top_shot_kmh"],
-            }
+        return {"clock": self.clock, "period": self.period, "momentum": self.momentum(), "flow": self.flow(),
+                "teams": _summary(self.team)}
+
+    def by_half(self):
+        """The same team stats for each half played so far (keys "first_half", "second_half")."""
+        out = {"first_half": _summary(self.halves[1])}
+        if self.period == 2:
+            out["second_half"] = _summary(self.halves[2])
         return out
+
+
+def _summary(team):
+    total = sum(t["possession_seconds"] for t in team.values()) or 1
+    return {side: {
+        "goals": t["goals"], "shots": t["shots"], "on_target": t["on_target"],
+        "xg": round(t["xg"], 2),
+        "possession_pct": round(100 * t["possession_seconds"] / total),
+        "passes": t["passes"],
+        "pass_accuracy_pct": round(100 * t["passes_completed"] / t["passes"]) if t["passes"] else 0,
+        "final_third_passes": t["final_third_passes"],
+        "pressures": t["pressures"], "tackles": t["tackles"], "interceptions": t["interceptions"],
+        "top_shot_kmh": t["top_shot_kmh"],
+    } for side, t in team.items()}
