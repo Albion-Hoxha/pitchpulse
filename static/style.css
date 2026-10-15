@@ -35,6 +35,8 @@ body {
   background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px;
 }
 .controls input { width: 70px; }
+.controls .voice-toggle { display: flex; align-items: center; gap: 6px; color: var(--text); cursor: pointer; }
+.controls .voice-toggle input { width: auto; accent-color: var(--accent); }
 button {
   background: var(--accent); color: #1a1300; border: 0; border-radius: 6px; padding: 7px 14px;
   font-weight: 700; cursor: pointer;

@@ -90,6 +90,35 @@ function showMoment(m) {
   lowerThird(LABELS[m.kind] || m.kind, m.headline, m.id);
 }
 
+// Spoken commentary (Azure AI Speech): lines queue up so they never talk over each other.
+const voiceQueue = [];
+let speaking = false, currentAudio = null;
+
+function say(text, language, token) {
+  if (!$("voice").checked || !token) return;
+  voiceQueue.push({ text, language, token });
+  while (voiceQueue.length > 2) voiceQueue.shift(); // drop stale lines rather than fall behind the match
+  if (!speaking) playNext();
+}
+
+async function playNext() {
+  const next = voiceQueue.shift();
+  if (!next) { speaking = false; return; }
+  speaking = true;
+  try {
+    const r = await fetch("/api/voice", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(next),
+    });
+    if (!r.ok) throw new Error(r.statusText);
+    const url = URL.createObjectURL(await r.blob());
+    const audio = currentAudio = new Audio(url);
+    audio.onended = audio.onerror = () => { URL.revokeObjectURL(url); playNext(); };
+    await audio.play();
+  } catch {
+    playNext();
+  }
+}
+
 // A badge that opens the Fact-Checker's evidence: where every number and player in the line comes from.
 function evidenceBadge(label, cls, evidence, title = "") {
   const badge = document.createElement("button");
@@ -141,6 +170,7 @@ function showCommentary(c) {
     $("lt-text").textContent = c.text;
   }
   if (c.overlay) renderGraphic(c.overlay);
+  say(c.text, c.voice_language, c.voice_token);
 }
 
 // The Director agent's overlay: graphic type, title and on-screen duration, data from the evidence.
@@ -269,12 +299,20 @@ $("ask-form").addEventListener("submit", async (ev) => {
       box.append(tools);
     }
     box.append(evidence);
+    say(a.answer, a.voice_language, a.voice_token);
   } catch (err) {
     box.className = "ask-answer";
     box.textContent = `Could not ask: ${err.message}`;
   } finally {
     button.disabled = false;
   }
+});
+
+$("voice").addEventListener("change", () => {
+  if ($("voice").checked) return;
+  voiceQueue.length = 0;
+  currentAudio?.pause();
+  speaking = false;
 });
 
 $("play").addEventListener("click", () => (source ? stop() : start()));

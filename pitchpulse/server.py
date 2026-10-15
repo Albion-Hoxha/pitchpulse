@@ -8,10 +8,11 @@ from collections import defaultdict
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query, Request
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from . import voice
 from .agents import ROSTER, ask_match, commentate
 from .limits import RateLimiter, client_ip
 from .mcp_server import MAX_SEED, mcp
@@ -23,6 +24,7 @@ STATIC = Path(__file__).parent.parent / "static"
 MAX_SLEEP = 1.5  # seconds; keeps long gaps (half-time) short on screen
 NAMES = {"home": HOME.name, "away": AWAY.name}
 ASK_LIMIT = RateLimiter(10, 600)  # questions per viewer IP per 10 minutes
+VOICE_LIMIT = RateLimiter(60, 600)  # spoken lines per viewer IP per 10 minutes
 MAX_STREAMS_PER_IP = 5  # room for a viewer flipping settings (each change reopens the stream)
 OPEN_STREAMS = defaultdict(int)
 
@@ -31,6 +33,15 @@ mcp_app = mcp.streamable_http_app()
 app = FastAPI(title="PitchPulse", lifespan=lambda _: mcp.session_manager.run())
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 app.mount("/mcp", mcp_app)
+
+
+@app.middleware("http")
+async def revalidate_ui(request: Request, call_next):
+    """Browsers must re-check the page and its scripts, so viewers get each deploy at once."""
+    response = await call_next(request)
+    if request.url.path == "/" or request.url.path.startswith("/static/"):
+        response.headers["Cache-Control"] = "no-cache"
+    return response
 
 
 @app.get("/")
@@ -64,7 +75,34 @@ async def ask(q: Question, request: Request):
         raise HTTPException(429, "Too many questions – please wait a few minutes.")
     prefs = {"mode": q.mode, "favorite": q.favorite, "language": q.language, "player": q.player}
     port = request.scope["server"][1]  # the agent reaches our own MCP server directly, not via the public ingress
-    return await ask_match(q.question, q.seed, q.until_event, prefs, NAMES, f"http://127.0.0.1:{port}/mcp/")
+    answer = await ask_match(q.question, q.seed, q.until_event, prefs, NAMES, f"http://127.0.0.1:{port}/mcp/")
+    return {**answer, **speakable(answer["answer"], answer["source"], q.language)}
+
+
+def speakable(text, source, language):
+    """Voice fields for a line we generated: template lines are English whatever the viewer picked."""
+    lang = language if source == "ai" else "English"
+    return {"voice_language": lang, "voice_token": voice.token(text, lang)}
+
+
+class Speech(BaseModel):
+    text: str = Field(min_length=1, max_length=voice.MAX_CHARS)
+    language: str = Field("English", pattern="^[A-Za-z ]{2,30}$")
+    token: str = Field(min_length=64, max_length=64)
+
+
+@app.post("/api/voice")
+async def say(s: Speech, request: Request):
+    """Speak a PitchPulse line with Azure AI Speech; only lines carrying our HMAC token are accepted."""
+    if not voice.verify(s.text, s.language, s.token):
+        raise HTTPException(403, "Only PitchPulse's own lines can be spoken.")
+    if not VOICE_LIMIT.allow(client_ip(request)):
+        raise HTTPException(429, "Too many voice requests – please wait a few minutes.")
+    try:
+        audio = await voice.speak(s.text, s.language)
+    except Exception as exc:  # the text stays on screen even if the voice is unavailable
+        raise HTTPException(502, "Voice is unavailable right now.") from exc
+    return Response(audio, media_type="audio/mpeg")
 
 
 @app.get("/api/match/stream")
@@ -101,8 +139,9 @@ async def stream(request: Request, seed: int = Query(7, ge=0, le=MAX_SEED), spee
         voiced = asyncio.Queue()
         last_t = None
 
-        async def voice(m):
-            await voiced.put({"commentary": {"moment_id": m["id"], **await commentate(m, NAMES, prefs)}})
+        async def narrate(m):
+            c = await commentate(m, NAMES, prefs)
+            await voiced.put({"commentary": {"moment_id": m["id"], **c, **speakable(c["text"], c["source"], language)}})
 
         def drain():
             while not voiced.empty():
@@ -117,7 +156,7 @@ async def stream(request: Request, seed: int = Query(7, ge=0, le=MAX_SEED), spee
                 await asyncio.sleep(min(max(e["t"] - last_t, 0) / speed, MAX_SLEEP))
             last_t = e["t"]
             for m in moments:  # agents run in the background; the match feed never waits for them
-                task = asyncio.create_task(voice(m))
+                task = asyncio.create_task(narrate(m))
                 pending.add(task)
                 task.add_done_callback(pending.discard)
             msg = {"event": e, "stats": stats.snapshot(), "moments": moments}

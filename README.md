@@ -11,7 +11,7 @@ PitchPulse turns live **synthetic** match events into verified insights, multili
 | Interpret | `pitchpulse/stats.py` – **Statistician**: live possession, xG, pass accuracy and difficulty, momentum, and **control vs chaos** (share of possessions lost, tempo, pressing per minute over the last 5 minutes) | done |
 | Explain | `pitchpulse/moments.py` – rule-based key-moment detection with evidence; `pitchpulse/agents.py` – **Analyst** explains why it matters, **Fact-Checker** rejects any number or player not in the evidence; viewers can open **show evidence** on every line to see where each number and player comes from | done |
 | Render | **Director** agent picks the graphic and its on-screen time → timed, machine-readable overlay JSON; `static/` – live broadcast screen (scorebug, pitch, momentum, lower-thirds, graphics, stats) | done |
-| Personalize | **Narrator** agent: casual / analyst mode, club supported, followed player (player cam), 7 languages; full-time **match recap** | done |
+| Personalize | **Narrator** agent: casual / analyst mode, club supported, followed player (player cam), 7 languages; full-time **match recap**; optional **spoken commentary** with Azure AI Speech neural voices (including Albanian) | done |
 
 Agents run on Azure OpenAI in Microsoft Foundry (`gpt-4.1-mini`). Without credentials, or if a call fails, every step
 falls back to a deterministic template, so the broadcast never stops.
