@@ -90,7 +90,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
   position: absolute; background: rgba(8, 14, 26, 0.94); border-radius: 6px; padding: 10px 14px;
   border-left: 4px solid var(--accent); animation: fade 0.3s ease-out;
 }
-.graphic { right: 14px; top: 64px; width: 260px; }
+.graphic { right: 14px; top: 112px; width: 260px; } /* below the momentum + control/chaos box */
 .player-cam { left: 14px; top: 64px; width: 220px; font-size: 13px; border-left-color: var(--muted); }
 .g-title { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); margin-bottom: 6px; font-weight: 700; }
 .g-label { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
