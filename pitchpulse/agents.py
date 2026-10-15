@@ -110,36 +110,90 @@ def recap_prompt(prefs, names):
     )
 
 
-def _allowed_numbers(moment):
-    allowed = set()
+def _number_sources(moment):
+    """Every number the evidence supports (with the roundings a commentator would say), mapped to where it
+    comes from: a path into the evidence such as ['teams', 'home', 'possession_pct']."""
+    sources = {}  # value -> [(path, how)], how = "exact" | "rounded" | "percent"
 
-    def walk(v):
+    def add(value, path, how="exact"):
+        found = sources.setdefault(round(float(value), 2), [])
+        if path not in (p for p, _ in found):
+            found.append((path, how))
+
+    def walk(v, path):
         if isinstance(v, bool):
             return
         if isinstance(v, (int, float)):
-            for x in (v, abs(v), round(v), round(v, 1), round(v, 2), round(v * 100)):
-                allowed.add(round(float(x), 2))
-        elif isinstance(v, (dict, list)):
-            for x in v.values() if isinstance(v, dict) else v:
-                walk(x)
+            for x, how in ((v, "exact"), (abs(v), "exact"), (round(v), "rounded"), (round(v, 1), "rounded"),
+                           (round(v, 2), "rounded"), (round(v * 100), "percent")):
+                add(x, path, how)
+        elif isinstance(v, dict):
+            for k, x in v.items():
+                if k != "event_id":  # internal id, never a fact for viewers
+                    walk(x, path + [k])
+        elif isinstance(v, list):
+            for i, x in enumerate(v):  # name list items by their player or kind, not their index
+                tag = (x.get("player") or f"{x.get('kind', '#')} {x.get('minute', x.get('clock', i))}"
+                       if isinstance(x, dict) else str(i))
+                walk(x, path + [tag])
 
-    walk(moment["evidence"])
-    minutes = [int(p) for p in re.findall(r"\d+", moment["clock"])]
-    minutes += [t["minute"] for t in moment["evidence"].get("timeline", [])]
-    for m in minutes:
-        allowed.update({float(m), float(m + 1)})  # "33:14" may be called the 34th minute
-    return allowed
+    walk(moment["evidence"], [])
+    for part in re.findall(r"\d+", moment["clock"]):  # "33:14" may also be called the 34th minute
+        add(int(part), ["match clock"])
+        add(int(part) + 1, ["match clock"])
+    for t in moment["evidence"].get("timeline", []):
+        add(t["minute"] + 1, [t.get("player") or t["kind"], "minute"])
+    return sources
+
+
+def _mentioned_players(text):
+    return [name for name in ROSTER if re.search(rf"\b{re.escape(name.split()[-1])}\b", text)]
 
 
 def fact_check(text, moment):
     """Return the numbers and player names in `text` that the moment's evidence does not support."""
-    allowed = _allowed_numbers(moment)
-    bad = [n for n in NUMBER.findall(text) if round(float(n.replace(",", ".")), 2) not in allowed]
+    sources = _number_sources(moment)
+    bad = [n for n in NUMBER.findall(text) if round(float(n.replace(",", ".")), 2) not in sources]
     evidence = json.dumps(moment["evidence"])
-    for name in ROSTER:  # a real player mentioned outside the evidence is how wrong attributions creep in
-        if name not in evidence and re.search(rf"\b{re.escape(name.split()[-1])}\b", text):
-            bad.append(name)
-    return bad
+    # a real player mentioned outside the evidence is how wrong attributions creep in
+    return bad + [name for name in _mentioned_players(text) if name not in evidence]
+
+
+PATH_LABELS = {"possession_pct": "possession %", "pass_accuracy_pct": "pass accuracy %", "xg": "xG",
+               "speed_kmh": "shot speed (km/h)", "top_shot_kmh": "fastest shot (km/h)", "on_target": "shots on target",
+               "final_third_passes": "final-third passes", "press_per_min": "pressing per minute",
+               "tempo_ppm": "tempo (passes per minute)", "chaos": "chaos index", "passes_completed": "passes completed",
+               "momentum": "momentum (last 5 min)", "teams": "", "snapshot": "", "flow": "", "players": "",
+               "moments": "", "player_stats": "", "timeline": ""}
+
+
+def cite(text, moment, names):
+    """The evidence behind each number and player in `text`, for the on-screen 'show evidence' panel.
+    A number can match several facts; the likeliest are shown: percentages for "57%", exact values
+    before rounded ones."""
+    sources = _number_sources(moment)
+    labels_for = {**PATH_LABELS, "player_stats": moment["evidence"].get("player", "")}
+    percents = set(re.findall(r"(\d+(?:[.,]\d+)?)\s*%", text))
+    out = []
+    for claim in dict.fromkeys(NUMBER.findall(text)):
+        def rank(found):
+            path, how = found
+            if claim in percents:
+                return 0 if how == "percent" or path[-1].endswith("_pct") else 2
+            return {"exact": 0, "rounded": 1, "percent": 2}[how]
+
+        found = sorted(sources.get(round(float(claim.replace(",", ".")), 2), []), key=rank)
+        best = [f for f in found if rank(f) == rank(found[0])] if found else []
+        labels = []
+        for path, how in best:
+            parts = (labels_for.get(p, names.get(p, p).replace("_", " ")) for p in path)
+            label = " · ".join(p for p in parts if p) + {"exact": "", "rounded": " (rounded)", "percent": " (as %)"}[how]
+            if label not in labels:
+                labels.append(label)
+        out += [{"claim": claim, "source": label} for label in labels[:2]]
+    out += [{"claim": name, "source": "named in the match data for this moment"}
+            for name in _mentioned_players(text)]
+    return out
 
 
 def template(moment, names):
@@ -298,13 +352,15 @@ async def ask_match(question, seed, until_event, prefs, names, mcp_url):
     if bad or not answer:
         return {"answer": "That answer could not be verified against the match data.", "source": "rejected",
                 "rejected": bad, "tools": tools, "engine": engine}
-    return {"answer": answer, "source": "ai", "tools": tools, "engine": engine}
+    return {"answer": answer, "source": "ai", "tools": tools, "engine": engine,
+            "evidence": cite(answer, check, names)}
 
 
 async def commentate(moment, names, prefs):
     """Run the agents for one moment: Analyst and Director in parallel, then Narrator + Fact-Checker."""
-    fallback = {"text": template(moment, names), "source": "template",
-                "overlay": build_overlay(default_pick(moment), moment)}
+    line = template(moment, names)
+    fallback = {"text": line, "source": "template", "overlay": build_overlay(default_pick(moment), moment),
+                "evidence": cite(line, moment, names)}
     if CLIENT is None:
         return fallback
     try:
@@ -324,6 +380,7 @@ async def commentate(moment, names, prefs):
             bad = fact_check(text, moment)
         if bad:
             return {**fallback, "rejected": bad}
-        return {"text": text, "analysis": analysis, "source": "ai", "overlay": build_overlay(pick, moment)}
+        return {"text": text, "analysis": analysis, "source": "ai", "overlay": build_overlay(pick, moment),
+                "evidence": cite(f"{text} {analysis or ''}", moment, names)}
     except Exception as exc:  # network, quota or content filter: the broadcast must go on
         return {**fallback, "error": type(exc).__name__}

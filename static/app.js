@@ -90,6 +90,36 @@ function showMoment(m) {
   lowerThird(LABELS[m.kind] || m.kind, m.headline, m.id);
 }
 
+// A badge that opens the Fact-Checker's evidence: where every number and player in the line comes from.
+function evidenceBadge(label, cls, evidence, title = "") {
+  const badge = document.createElement("button");
+  badge.type = "button";
+  badge.className = `badge ${cls}`;
+  badge.textContent = label;
+  badge.title = title;
+  const list = document.createElement("ul");
+  list.className = "evidence";
+  list.hidden = true;
+  if (!evidence?.length) {
+    badge.disabled = true;
+    return [badge, list];
+  }
+  badge.textContent += " ▾";
+  badge.setAttribute("aria-expanded", "false");
+  for (const e of evidence) {
+    const li = document.createElement("li");
+    li.innerHTML = "<b></b> <span></span>";
+    li.querySelector("b").textContent = e.claim;
+    li.querySelector("span").textContent = `← ${e.source}`;
+    list.append(li);
+  }
+  badge.addEventListener("click", () => {
+    list.hidden = !list.hidden;
+    badge.setAttribute("aria-expanded", String(!list.hidden));
+  });
+  return [badge, list];
+}
+
 // The agents answer a few seconds after the moment; the newest moment's lower-third gets the line.
 function showCommentary(c) {
   const li = document.getElementById(`m-${c.moment_id}`);
@@ -97,11 +127,8 @@ function showCommentary(c) {
   const p = li.querySelector(".commentary");
   p.textContent = c.text;
   p.classList.remove("pending");
-  const badge = document.createElement("span");
-  badge.className = `badge ${c.source}`;
-  badge.textContent = c.source === "ai" ? "✓ AI · fact-checked" : "template";
-  badge.title = c.rejected ? `Fact-Checker rejected: ${c.rejected.join(", ")}` : c.error || "";
-  p.append(" ", badge);
+  const title = c.rejected ? `Fact-Checker rejected: ${c.rejected.join(", ")}` : c.error || "";
+  p.append(" ", ...evidenceBadge(c.source === "ai" ? "✓ AI · fact-checked" : "template", c.source, c.evidence, title));
   if (c.analysis) {
     const a = li.querySelector(".analysis");
     a.textContent = `Why it matters: ${c.analysis}`;
@@ -231,9 +258,8 @@ $("ask-form").addEventListener("submit", async (ev) => {
     if (!r.ok) throw new Error(typeof a.detail === "string" ? a.detail : r.statusText);
     box.className = "ask-answer";
     box.textContent = a.answer;
-    const badge = document.createElement("span");
-    badge.className = `badge ${a.source === "ai" ? "ai" : "template"}`;
-    badge.textContent = a.source === "ai" ? "✓ AI · fact-checked" : a.source;
+    const [badge, evidence] = evidenceBadge(a.source === "ai" ? "✓ AI · fact-checked" : a.source,
+      a.source === "ai" ? "ai" : "template", a.evidence);
     box.append(" ", badge);
     if (a.tools?.length) {
       const tools = document.createElement("span");
@@ -242,6 +268,7 @@ $("ask-form").addEventListener("submit", async (ev) => {
       tools.textContent = `${by} · data via MCP: ${a.tools.join(", ")}`;
       box.append(tools);
     }
+    box.append(evidence);
   } catch (err) {
     box.className = "ask-answer";
     box.textContent = `Could not ask: ${err.message}`;

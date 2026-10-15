@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 from pitchpulse import agents, server
 from pitchpulse.limits import RateLimiter
 
-from pitchpulse.agents import build_overlay, default_pick, fact_check, template, validate_pick
+from pitchpulse.agents import build_overlay, cite, default_pick, fact_check, template, validate_pick
 from pitchpulse.mcp_server import key_moments, match_snapshot, player_stats, top_players
 from pitchpulse.moments import MomentDetector
 from pitchpulse.simulator import shot_xg, simulate
@@ -66,6 +66,12 @@ class SimulatorTest(unittest.TestCase):
         goal = next(m for m in moments if m["kind"] == "goal")  # Hale, 33:14, xG 0.573, 0-1
         self.assertEqual(fact_check("Hale scores in the 34th minute, a 57% chance, 0-1!", goal), [])
         self.assertEqual(fact_check("Hale's 12th goal of the season, 0-1.", goal), ["12"])
+        cites = cite("Hale scores in the 34th minute, a 57% chance, 1-0!", goal, names)
+        sources = {(c["claim"], c["source"]) for c in cites}
+        self.assertIn(("34", "match clock"), sources)
+        self.assertIn(("57", "xG (as %)"), sources)  # "57%" is read as a percentage first
+        self.assertIn(("1", "score · A"), sources)  # Hale plays for the away side
+        self.assertIn(("Marcus Hale", "named in the match data for this moment"), sources)
         swing = next(m for m in moments if m["kind"] == "momentum_shift")
         self.assertEqual(fact_check("Mateo Ruiz and Riverside are dominating now!", swing), ["Mateo Ruiz"])
         for m in moments:  # the fallback templates must always pass the Fact-Checker
