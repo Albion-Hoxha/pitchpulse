@@ -291,6 +291,8 @@ function reset() {
   $("moments").innerHTML = "";
   $("trail").innerHTML = "";
   ["lower-third", "graphic", "recap-box", "player-cam"].forEach((id) => ($(id).hidden = true));
+  $("clock").textContent = "0:00";  // a new match starts from a clean scorebug
+  $("home-goals").textContent = $("away-goals").textContent = "0";
   moveBall([W / 2, H / 2]);
 }
 
