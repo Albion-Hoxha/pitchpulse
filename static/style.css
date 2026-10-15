@@ -136,3 +136,41 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .badge.template { background: var(--line); color: var(--muted); }
 .moments .home { border-left: 3px solid var(--home); padding-left: 8px; }
 .moments .away { border-left: 3px solid var(--away); padding-left: 8px; }
+
+/* Graphic animations: bars grow in, markers slide from centre, new moments slide in. */
+.graphic .stat-bar > div, .g-momentum > div { animation: grow 0.6s ease-out; }
+.graphic .stat-bar .home { transform-origin: left; }
+.graphic .stat-bar .away, .g-momentum > div { transform-origin: right; }
+.graphic .g-big, .graphic .g-compare b { animation: pop 0.4s ease-out; }
+#g-flow-marker { animation: from-centre 0.6s ease-out; }
+.moments li { animation: fade 0.3s ease-out; }
+@keyframes grow { from { transform: scaleX(0); } }
+@keyframes pop { from { transform: scale(0.85); opacity: 0; } }
+@keyframes from-centre { from { left: 50%; } }
+
+/* Phone: controls in two columns, overlays stack under the pitch so they don't cover it. */
+@media (max-width: 600px) {
+  .topbar { padding: 10px 16px; }
+  .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
+  .controls label { display: flex; flex-direction: column; gap: 2px; font-size: 12px; }
+  .controls input, .controls select { width: 100%; min-height: 36px; }
+  #play { grid-column: 1 / -1; min-height: 42px; }
+  .layout { padding: 12px 16px; gap: 12px; }
+
+  .screen { display: flex; flex-direction: column; }
+  #pitch { order: 1; }
+  .scorebug { top: 8px; left: 8px; font-size: 14px; }
+  .scorebug > span { padding: 4px 7px; }
+  .scorebug .clock { min-width: 52px; }
+  .lower-third, .graphic, .player-cam, .momentum { position: static; width: auto; margin: 8px 8px 0; }
+  .lower-third { order: 2; animation-name: fade; }
+  .lt-kind, .lt-text { padding: 8px 10px; font-size: 14px; }
+  .graphic { order: 3; }
+  .player-cam { order: 4; }
+  .momentum { order: 5; margin-bottom: 8px; }
+  .ask button { min-height: 40px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
