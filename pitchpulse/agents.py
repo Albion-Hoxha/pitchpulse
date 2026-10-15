@@ -234,13 +234,18 @@ ASK = (
 
 
 def _tools_used(response):
-    return sorted({c.name for m in getattr(response, "messages", []) for c in getattr(m, "contents", [])
-                   if getattr(c, "type", "") == "function_call" and getattr(c, "name", None)})
+    """Tool names an agent called: local function calls carry `name`, Foundry's hosted MCP calls `tool_name`."""
+    calls = [c for m in getattr(response, "messages", []) for c in getattr(m, "contents", [])
+             if getattr(c, "type", "") in ("function_call", "mcp_server_tool_call")]
+    return sorted({getattr(c, "name", None) or getattr(c, "tool_name", None) for c in calls} - {None})
 
 
 async def ask_match(question, seed, until_event, prefs, names, mcp_url):
-    """Ask-the-Match agent (Microsoft Agent Framework) that queries the match MCP server, then the
-    Fact-Checker verifies its answer against the same match data."""
+    """Ask the Match: the published Microsoft Foundry agent answers through the match MCP server (falling back
+    to an in-process Agent Framework agent if Foundry is unreachable); the Fact-Checker verifies the answer."""
+    from contextlib import AsyncExitStack
+
+    from . import foundry_agent
     from .mcp_server import key_moments, match_snapshot, player_stats
 
     if CLIENT is None:
@@ -252,21 +257,36 @@ async def ask_match(question, seed, until_event, prefs, names, mcp_url):
     evidence = {"snapshot": snapshot, "moments": key_moments(seed, until_event),
                 "players": [player_stats(p, seed, until_event) for p in ROSTER]}
     check = {"evidence": evidence, "clock": snapshot["clock"]}
-    try:
-        from agent_framework import Agent, MCPStreamableHTTPTool
-        from agent_framework.openai import OpenAIChatCompletionClient
+    language, audience = prefs.get("language", "English"), _audience(prefs, names)
+    engine = "foundry" if foundry_agent.PROJECT_ENDPOINT else "local"
+    local_agent = None
 
-        async with MCPStreamableHTTPTool(name="match", url=mcp_url) as match_tools:
-            agent = Agent(OpenAIChatCompletionClient(model=MODEL, async_client=CLIENT), name="AskTheMatch",
-                          instructions=ASK.format(seed=seed, until=until_event, audience=_audience(prefs, names),
-                                                  language=prefs.get("language", "English")),
-                          tools=match_tools)
-            response = await agent.run(question)
+    async def ask_once(text, stack):
+        nonlocal engine, local_agent
+        if engine == "foundry":
+            try:
+                return await foundry_agent.run(foundry_agent.message(text, seed, until_event, language, audience))
+            except Exception:
+                engine = "local"  # Foundry unreachable: the in-process agent answers instead
+        if local_agent is None:
+            from agent_framework import Agent, MCPStreamableHTTPTool
+            from agent_framework.openai import OpenAIChatCompletionClient
+
+            match_tools = await stack.enter_async_context(MCPStreamableHTTPTool(name="match", url=mcp_url))
+            local_agent = Agent(OpenAIChatCompletionClient(model=MODEL, async_client=CLIENT), name="AskTheMatch",
+                                instructions=ASK.format(seed=seed, until=until_event, audience=audience,
+                                                        language=language),
+                                tools=match_tools)
+        return await local_agent.run(text)
+
+    try:
+        async with AsyncExitStack() as stack:
+            response = await ask_once(question, stack)
             answer, tools = response.text.strip(), _tools_used(response)
             bad = fact_check(answer, check)
             if bad:  # one rewrite, as for the Narrator
-                response = await agent.run(f"{question}\n\n(Fact-Checker: your previous answer used unsupported "
-                                           f"facts {bad}. Answer again using only tool results.)")
+                response = await ask_once(f"{question}\n\n(Fact-Checker: your previous answer used unsupported "
+                                          f"facts {bad}. Answer again using only tool results.)", stack)
                 answer, tools = response.text.strip(), sorted(set(tools) | set(_tools_used(response)))
                 bad = fact_check(answer, check)
     except Exception as exc:  # the question goes unanswered, the broadcast carries on
@@ -274,8 +294,8 @@ async def ask_match(question, seed, until_event, prefs, names, mcp_url):
                 "error": type(exc).__name__, "tools": []}
     if bad or not answer:
         return {"answer": "That answer could not be verified against the match data.", "source": "rejected",
-                "rejected": bad, "tools": tools}
-    return {"answer": answer, "source": "ai", "tools": tools}
+                "rejected": bad, "tools": tools, "engine": engine}
+    return {"answer": answer, "source": "ai", "tools": tools, "engine": engine}
 
 
 async def commentate(moment, names, prefs):

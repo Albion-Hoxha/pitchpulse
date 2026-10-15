@@ -238,7 +238,8 @@ $("ask-form").addEventListener("submit", async (ev) => {
     if (a.tools?.length) {
       const tools = document.createElement("span");
       tools.className = "tools";
-      tools.textContent = `Data via MCP: ${a.tools.join(", ")}`;
+      const by = a.engine === "foundry" ? "Microsoft Foundry agent" : "Agent Framework agent";
+      tools.textContent = `${by} · data via MCP: ${a.tools.join(", ")}`;
       box.append(tools);
     }
   } catch (err) {

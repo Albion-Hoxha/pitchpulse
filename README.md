@@ -24,9 +24,18 @@ templates, so the broadcast keeps running without spending more credit.
 
 ### Ask the Match (Microsoft Agent Framework + MCP)
 
-Viewers can ask questions such as *"Which team is pressing harder right now?"*. An **Agent Framework** agent answers
-by calling the **match MCP server** (`pitchpulse/mcp_server.py`, streamable HTTP at `/mcp/`), and the Fact-Checker
-verifies the answer against the same data. MCP tools: `match_snapshot`, `player_stats`, `top_players`, `key_moments` –
+Viewers can ask questions such as *"Which team is pressing harder right now?"*. The question goes to the
+**`ask-the-match` agent published in Microsoft Foundry** (`pitchpulse/foundry_agent.py`), which calls the
+**match MCP server** (`pitchpulse/mcp_server.py`, streamable HTTP at `/mcp/`) as a hosted MCP tool. If Foundry is
+unreachable, an in-process **Agent Framework** agent with the same MCP tools answers instead. Either way the
+Fact-Checker verifies the answer against the same data.
+
+Publish or update the Foundry agent (needs the *Foundry User* role on the Foundry resource):
+
+```bash
+FOUNDRY_PROJECT_ENDPOINT=https://<resource>.services.ai.azure.com/api/projects/<project> \
+  python -m pitchpulse.foundry_agent publish https://<app-host>/mcp/
+``` MCP tools: `match_snapshot`, `player_stats`, `top_players`, `key_moments` –
 each takes the match `seed` and `until_event`, so any MCP client (GitHub Copilot, a Foundry agent) can query the
 match exactly as it stood at any moment.
 
