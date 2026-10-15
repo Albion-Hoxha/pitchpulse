@@ -12,7 +12,7 @@ from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import voice
+from . import telemetry, voice
 from .agents import ROSTER, ask_match, commentate
 from .limits import RateLimiter, client_ip
 from .mcp_server import MAX_SEED, mcp
@@ -31,6 +31,7 @@ OPEN_STREAMS = defaultdict(int)
 # MCP endpoint at /mcp/ (streamable HTTP); public hosts come from MCP_ALLOWED_HOSTS.
 mcp_app = mcp.streamable_http_app()
 app = FastAPI(title="PitchPulse", lifespan=lambda _: mcp.session_manager.run())
+telemetry.setup(app)
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 app.mount("/mcp", mcp_app)
 

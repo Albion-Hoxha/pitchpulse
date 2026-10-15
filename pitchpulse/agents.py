@@ -19,6 +19,7 @@ from pathlib import Path
 
 from .limits import RateLimiter
 from .simulator import AWAY, HOME
+from .telemetry import tracer
 
 LOG = logging.getLogger("pitchpulse.agents")
 ENV_FILE = Path(__file__).parent.parent / ".env"
@@ -265,9 +266,14 @@ async def _chat(system, payload, json_mode=False):
     if not LLM_BUDGET.allow("global"):
         raise BudgetExceeded("hourly model-call budget used up")
     extra = {"response_format": {"type": "json_object"}} if json_mode else {}
-    r = await CLIENT.chat.completions.create(
-        model=MODEL, max_completion_tokens=400, **extra,
-        messages=[{"role": "system", "content": system}, {"role": "user", "content": json.dumps(payload)}])
+    with tracer.start_as_current_span(f"chat {MODEL}") as span:  # GenAI semantic-convention attributes
+        span.set_attributes({"gen_ai.operation.name": "chat", "gen_ai.request.model": MODEL})
+        r = await CLIENT.chat.completions.create(
+            model=MODEL, max_completion_tokens=400, **extra,
+            messages=[{"role": "system", "content": system}, {"role": "user", "content": json.dumps(payload)}])
+        if r.usage:
+            span.set_attributes({"gen_ai.usage.input_tokens": r.usage.prompt_tokens,
+                                 "gen_ai.usage.output_tokens": r.usage.completion_tokens})
     text = (r.choices[0].message.content or "").strip()
     if not text:
         raise ValueError("empty completion")
@@ -299,6 +305,21 @@ def _tools_used(response):
     return sorted({getattr(c, "name", None) or getattr(c, "tool_name", None) for c in calls} - {None})
 
 
+def _traced(name, attributes):
+    """Wrap an agent pipeline in a span tagged with how it ended (source, engine, Fact-Checker rejections)."""
+    def wrap(fn):
+        async def run(*args, **kwargs):
+            with tracer.start_as_current_span(name(*args)) as span:
+                result = await fn(*args, **kwargs)
+                span.set_attributes({k: v for k, v in attributes(result).items() if v is not None})
+                return result
+        return run
+    return wrap
+
+
+@_traced(lambda *a: "ask_the_match",
+         lambda r: {"pitchpulse.engine": r.get("engine"), "pitchpulse.source": r["source"],
+                    "pitchpulse.tools": ",".join(r.get("tools", [])), "pitchpulse.rejected": len(r.get("rejected", []))})
 async def ask_match(question, seed, until_event, prefs, names, mcp_url):
     """Ask the Match: the published Microsoft Foundry agent answers through the match MCP server (falling back
     to an in-process Agent Framework agent if Foundry is unreachable); the Fact-Checker verifies the answer."""
@@ -359,6 +380,9 @@ async def ask_match(question, seed, until_event, prefs, names, mcp_url):
             "evidence": cite(answer, check, names)}
 
 
+@_traced(lambda moment, *a: f"commentate {moment['kind']}",
+         lambda r: {"pitchpulse.source": r["source"], "pitchpulse.rejected": len(r.get("rejected", [])),
+                    "pitchpulse.error": r.get("error"), "pitchpulse.graphic": r["overlay"]["graphic"]})
 async def commentate(moment, names, prefs):
     """Run the agents for one moment: Analyst and Director in parallel, then Narrator + Fact-Checker."""
     line = template(moment, names)

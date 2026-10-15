@@ -22,6 +22,13 @@ With **🎬 Producer** on, every AI line arrives as a draft. Nothing reaches the
 the voice until a producer clicks **✓ On air**; **✕ Drop** discards it. The fact-checked evidence is right there to
 decide with.
 
+### Observability
+
+With `APPLICATIONINSIGHTS_CONNECTION_STRING` set, OpenTelemetry sends every request, Agent Framework agent run,
+MCP call and model call (with token usage) to **Azure Application Insights**, plus one span per agent pipeline
+tagged with how it ended: AI or template, Foundry or local agent, Fact-Checker rejections, chosen graphic. The
+exporter signs in with the app's managed identity; key-based ingestion is disabled.
+
 ### Cost and abuse protection
 
 The public demo caps model usage: 10 questions per viewer IP per 10 minutes, 5 open matches per IP, and a global
