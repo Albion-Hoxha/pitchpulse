@@ -16,6 +16,12 @@ PitchPulse turns live **synthetic** match events into verified insights, multili
 Agents run on Azure OpenAI in Microsoft Foundry (`gpt-4.1-mini`). Without credentials, or if a call fails, every step
 falls back to a deterministic template, so the broadcast never stops.
 
+### Producer mode (human in the loop)
+
+With **🎬 Producer** on, every AI line arrives as a draft. Nothing reaches the lower-third, the Director's graphic or
+the voice until a producer clicks **✓ On air**; **✕ Drop** discards it. The fact-checked evidence is right there to
+decide with.
+
 ### Cost and abuse protection
 
 The public demo caps model usage: 10 questions per viewer IP per 10 minutes, 5 open matches per IP, and a global

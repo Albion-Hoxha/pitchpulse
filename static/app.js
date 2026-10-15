@@ -163,14 +163,40 @@ function showCommentary(c) {
     a.textContent = `Why it matters: ${c.analysis}`;
     a.hidden = false;
   }
+  if ($("producer").checked) holdForProducer(li, c);
+  else putOnAir(c, false);
+}
+
+// Lower-third text, the Director's graphic and the voice go out only once a line is on air.
+function putOnAir(c, approved) {
   if (c.moment_id.endsWith(":full_time")) {
     $("recap").textContent = c.text;
     $("recap-box").hidden = false;
+  } else if (approved) {
+    lowerThird(LABELS[c.moment_id.split(":")[1]] || "On air", c.text, c.moment_id);
   } else if ($("lower-third").dataset.moment === c.moment_id && !$("lower-third").hidden) {
     $("lt-text").textContent = c.text;
   }
   if (c.overlay) renderGraphic(c.overlay);
   say(c.text, c.voice_language, c.voice_token);
+}
+
+// Producer mode: the AI's line waits as a draft until a human sends it to air or drops it.
+function holdForProducer(li, c) {
+  li.classList.add("draft");
+  const bar = document.createElement("div");
+  bar.className = "review";
+  bar.innerHTML = `<button type="button" class="air">✓ On air</button><button type="button" class="drop">✕ Drop</button>`;
+  const decide = (aired) => {
+    li.classList.remove("draft");
+    li.classList.toggle("dropped", !aired);
+    bar.textContent = aired ? "🎬 Approved by producer" : "🎬 Dropped by producer";
+    bar.className = "review done";
+    if (aired) putOnAir(c, true);
+  };
+  bar.querySelector(".air").addEventListener("click", () => decide(true));
+  bar.querySelector(".drop").addEventListener("click", () => decide(false));
+  li.querySelector(".commentary").after(bar);
 }
 
 // The Director agent's overlay: graphic type, title and on-screen duration, data from the evidence.
