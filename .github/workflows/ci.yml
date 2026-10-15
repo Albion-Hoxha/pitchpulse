@@ -1,4 +1,4 @@
-name: CI
+name: CI/CD
 
 on:
   push:
@@ -20,5 +20,30 @@ jobs:
       - run: pip install -r requirements.txt
       # No Azure secrets here: the agents fall back to templates, everything else is tested for real.
       - run: python -m unittest discover tests -v
-      - name: Docker image builds
-        run: docker build -t pitchpulse .
+
+  deploy:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # OIDC: GitHub proves who it is to Azure, so no password or secret is stored anywhere
+      contents: read
+    env:
+      ACR: ca5a2117c33eacr
+      IMAGE: ca5a2117c33eacr.azurecr.io/pitchpulse:${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with: # identifiers, not secrets: the federated credential only trusts this repo's main branch
+          client-id: 81a477f6-5caa-461f-a7df-12fefe8a21a5
+          tenant-id: 13dca4d1-4c70-4cf9-baac-2de6cb6e4db2
+          subscription-id: 054337f2-c1d4-4f76-b5f4-b625ebd60421
+      - name: Build and push image
+        run: |
+          az acr login -n "$ACR"
+          docker build -t "$IMAGE" .
+          docker push "$IMAGE"
+      - name: Deploy to Azure Container Apps
+        run: |
+          az extension add --name containerapp --upgrade --only-show-errors
+          az containerapp update -n pitchpulse -g pitchpulse-rg --image "$IMAGE" --query properties.latestRevisionName -o tsv

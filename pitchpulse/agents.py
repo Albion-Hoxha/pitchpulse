@@ -57,10 +57,14 @@ def _load_env():
 def _client():
     _load_env()
     endpoint, key = os.getenv("AZURE_OPENAI_ENDPOINT"), os.getenv("AZURE_OPENAI_API_KEY")
-    if not (endpoint and key):
+    if not endpoint:
         return None
     from openai import AsyncOpenAI  # Azure OpenAI v1 API: no api-version needed
 
+    if not key:  # deployed: Entra ID via the app's managed identity, so no key exists anywhere in the cloud
+        from azure.identity.aio import DefaultAzureCredential, get_bearer_token_provider
+
+        key = get_bearer_token_provider(DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default")
     return AsyncOpenAI(base_url=endpoint.rstrip("/") + "/openai/v1/", api_key=key)
 
 
