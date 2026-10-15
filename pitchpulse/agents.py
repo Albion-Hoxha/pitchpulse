@@ -12,6 +12,7 @@ deterministic default, so the broadcast never stops.
 """
 import asyncio
 import json
+import logging
 import os
 import re
 from pathlib import Path
@@ -19,6 +20,7 @@ from pathlib import Path
 from .limits import RateLimiter
 from .simulator import AWAY, HOME
 
+LOG = logging.getLogger("pitchpulse.agents")
 ENV_FILE = Path(__file__).parent.parent / ".env"
 NUMBER = re.compile(r"\d+(?:[.,]\d+)?")
 ROSTER = {name: team.name for team in (HOME, AWAY) for _, name, _ in team.players}
@@ -266,7 +268,8 @@ async def ask_match(question, seed, until_event, prefs, names, mcp_url):
         if engine == "foundry":
             try:
                 return await foundry_agent.run(foundry_agent.message(text, seed, until_event, language, audience))
-            except Exception:
+            except Exception as exc:
+                LOG.warning("Foundry agent failed, using the local agent: %r", exc)
                 engine = "local"  # Foundry unreachable: the in-process agent answers instead
         if local_agent is None:
             from agent_framework import Agent, MCPStreamableHTTPTool
