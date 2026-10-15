@@ -49,14 +49,14 @@ async def _auth_header():
     return {"Authorization": f"Bearer {access.token}"}
 
 
-async def speak(text, language):
-    """MP3 audio of `text` in the viewer's language."""
+async def speak(text, language, rate=0):
+    """MP3 audio of `text` in the viewer's language; `rate` speeds the voice up by that many percent."""
     url = _endpoint()
     if not url:
         raise RuntimeError("Azure AI Speech is not configured")
     lang, voice = VOICES.get(language, VOICES["English"])
-    ssml = (f"<speak version='1.0' xml:lang='{lang}'><voice name='{voice}'>"
-            f"{escape(text[:MAX_CHARS])}</voice></speak>")
+    ssml = (f"<speak version='1.0' xml:lang='{lang}'><voice name='{voice}'><prosody rate='+{int(rate)}%'>"
+            f"{escape(text[:MAX_CHARS])}</prosody></voice></speak>")
     headers = {**await _auth_header(), "Content-Type": "application/ssml+xml", "User-Agent": "pitchpulse",
                "X-Microsoft-OutputFormat": "audio-24khz-48kbitrate-mono-mp3"}
     async with httpx.AsyncClient(timeout=30) as client:

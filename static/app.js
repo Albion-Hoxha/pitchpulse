@@ -90,14 +90,21 @@ function showMoment(m) {
   lowerThird(LABELS[m.kind] || m.kind, m.headline, m.id);
 }
 
-// Spoken commentary (Azure AI Speech): lines queue up so they never talk over each other.
+// Spoken commentary (Azure AI Speech). Lines never talk over each other, and the voice keeps pace with
+// the match: audio is fetched as soon as a line arrives, a fast-forwarded match is voiced faster, and
+// only the newest waiting line is kept, so the voice never lags behind the action.
 const voiceQueue = [];
 let speaking = false, currentAudio = null;
+const speechRate = () => { const s = Number($("speed").value); return s >= 200 ? 40 : s >= 60 ? 20 : 0; };
 
 function say(text, language, token) {
   if (!$("voice").checked || !token) return;
-  voiceQueue.push({ text, language, token });
-  while (voiceQueue.length > 2) voiceQueue.shift(); // drop stale lines rather than fall behind the match
+  const audio = fetch("/api/voice", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text, language, token, rate: speechRate() }),
+  }).then((r) => (r.ok ? r.blob() : null)).catch(() => null);
+  voiceQueue.push(audio);
+  while (voiceQueue.length > 1) voiceQueue.shift(); // a newer line replaces any line still waiting
   if (!speaking) playNext();
 }
 
@@ -105,18 +112,12 @@ async function playNext() {
   const next = voiceQueue.shift();
   if (!next) { speaking = false; return; }
   speaking = true;
-  try {
-    const r = await fetch("/api/voice", {
-      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(next),
-    });
-    if (!r.ok) throw new Error(r.statusText);
-    const url = URL.createObjectURL(await r.blob());
-    const audio = currentAudio = new Audio(url);
-    audio.onended = audio.onerror = () => { URL.revokeObjectURL(url); playNext(); };
-    await audio.play();
-  } catch {
-    playNext();
-  }
+  const blob = await next;
+  if (!blob || !$("voice").checked) return playNext();
+  const url = URL.createObjectURL(blob);
+  const audio = currentAudio = new Audio(url);
+  audio.onended = audio.onerror = () => { URL.revokeObjectURL(url); playNext(); };
+  audio.play().catch(() => audio.onended());
 }
 
 // A badge that opens the Fact-Checker's evidence: where every number and player in the line comes from.

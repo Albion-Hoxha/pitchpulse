@@ -20,5 +20,6 @@ def setup(app):
 
     configure_azure_monitor(connection_string=connection, credential=DefaultAzureCredential(),
                             logger_name="pitchpulse")
-    FastAPIInstrumentor.instrument_app(app)  # app was built from the class imported before configuration
+    # app was built from the class imported before configuration; skip one span per streamed SSE chunk
+    FastAPIInstrumentor.instrument_app(app, exclude_spans=["send", "receive"])
     return True  # Microsoft Agent Framework spans (agent runs, MCP calls) flow to the same exporter

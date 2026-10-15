@@ -90,6 +90,7 @@ class Speech(BaseModel):
     text: str = Field(min_length=1, max_length=voice.MAX_CHARS)
     language: str = Field("English", pattern="^[A-Za-z ]{2,30}$")
     token: str = Field(min_length=64, max_length=64)
+    rate: int = Field(0, ge=0, le=50)  # % faster speech so the voice keeps up with a fast-forwarded match
 
 
 @app.post("/api/voice")
@@ -100,7 +101,7 @@ async def say(s: Speech, request: Request):
     if not VOICE_LIMIT.allow(client_ip(request)):
         raise HTTPException(429, "Too many voice requests – please wait a few minutes.")
     try:
-        audio = await voice.speak(s.text, s.language)
+        audio = await voice.speak(s.text, s.language, s.rate)
     except Exception as exc:  # the text stays on screen even if the voice is unavailable
         raise HTTPException(502, "Voice is unavailable right now.") from exc
     return Response(audio, media_type="audio/mpeg")

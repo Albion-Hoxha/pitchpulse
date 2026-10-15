@@ -151,13 +151,18 @@ class SimulatorTest(unittest.TestCase):
         line = server.speakable("GOAL! Hale scores.", "ai", "Albanian")
         self.assertEqual(line["voice_language"], "Albanian")
         self.assertEqual(server.speakable("Half-time.", "template", "Albanian")["voice_language"], "English")
-        with patch.object(server.voice, "speak", AsyncMock(return_value=b"ID3fake")):
+        speak = AsyncMock(return_value=b"ID3fake")
+        with patch.object(server.voice, "speak", speak):
             ok = client.post("/api/voice", json={"text": "GOAL! Hale scores.", "language": "Albanian",
-                                                 "token": line["voice_token"]})
+                                                 "token": line["voice_token"], "rate": 40})
+            too_fast = client.post("/api/voice", json={"text": "GOAL! Hale scores.", "language": "Albanian",
+                                                       "token": line["voice_token"], "rate": 300})
             forged = client.post("/api/voice", json={"text": "Buy my product!", "language": "Albanian",
                                                      "token": line["voice_token"]})
         self.assertEqual((ok.status_code, ok.headers["content-type"], ok.content), (200, "audio/mpeg", b"ID3fake"))
         self.assertEqual(forged.status_code, 403)
+        self.assertEqual(too_fast.status_code, 422)
+        speak.assert_awaited_once_with("GOAL! Hale scores.", "Albanian", 40)
 
     def test_keyless_client_builds(self):
         # The deployed app has no key and signs in with its managed identity; that path must import cleanly.
