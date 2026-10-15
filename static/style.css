@@ -97,6 +97,10 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .g-title { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); margin-bottom: 6px; font-weight: 700; }
 .g-label { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
 .g-big { font-size: 20px; font-weight: 800; }
+.g-huge { font-size: 34px; font-weight: 800; line-height: 1.1; color: var(--accent); font-variant-numeric: tabular-nums; }
+.g-huge small { font-size: 16px; color: var(--text); }
+.stat.focus { background: rgba(247, 201, 72, 0.08); border-radius: 6px; padding: 4px 6px; margin: 0 -6px 10px; }
+.stat.focus .stat-row span { color: var(--accent); font-weight: 700; }
 .g-big.home { color: var(--home); }
 .g-big.away { color: var(--away); }
 .g-compare { display: flex; align-items: center; gap: 8px; font-size: 18px; }

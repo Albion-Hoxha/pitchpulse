@@ -38,15 +38,20 @@ ANALYST = (
     "(flow.tempo_ppm, passes per minute). Use only numbers that appear in the evidence."
 )
 
-GRAPHICS = ("score_update", "stat_compare", "player_card", "momentum", "flow")
-STAT_KEYS = ("possession_pct", "xg", "shots", "on_target", "pass_accuracy_pct", "final_third_passes",
-             "pressures", "tackles")
+GRAPHICS = ("score_update", "stat_compare", "player_card", "momentum", "flow", "indicator")
+STAT_KEYS = ("possession_pct", "xg", "shots", "on_target", "pass_accuracy_pct", "pass_difficulty_avg",
+             "final_third_passes", "pressures", "tackles")
+# The one number a viewer can choose to follow ("focus metric").
+METRICS = {"xg": "xG (chance quality)", "possession_pct": "possession", "pass_accuracy_pct": "pass accuracy",
+           "pass_difficulty_avg": "pass difficulty", "shots": "shots", "pressures": "pressing",
+           "tackles": "tackles won", "final_third_passes": "final-third passes"}
 DIRECTOR = (
     "You are the Director in a football TV control room. Pick the ONE on-screen graphic that best supports "
     "this moment. Reply with JSON only: {\"graphic\": one of " + "|".join(GRAPHICS) + ", \"stat\": one of "
     + "|".join(STAT_KEYS) + " (used by stat_compare), \"title\": max 40 characters, \"duration_s\": 4-12}. "
-    "Choose the stat that best explains why the moment matters. Use player_card only when the moment names a "
-    "player. Put no numbers in the title."
+    "Choose the stat that best explains why the moment matters; if the viewer has a focus_metric, prefer "
+    "stat_compare with it unless the moment clearly needs another graphic. Use player_card only when the moment "
+    "names a player, and indicator for speed or distance moments. Put no numbers in the title."
 )
 
 
@@ -91,6 +96,8 @@ def _audience(prefs, names):
     if player:
         text += (f" The viewer follows {player} of {ROSTER.get(player, 'their club')}: mention them only when "
                  "this moment's evidence names them.")
+    if prefs.get("metric") in METRICS:
+        text += f" The viewer's favourite metric is {METRICS[prefs['metric']]}: weave it in whenever the evidence has it."
     return text
 
 
@@ -165,7 +172,8 @@ PATH_LABELS = {"possession_pct": "possession %", "pass_accuracy_pct": "pass accu
                "speed_kmh": "shot speed (km/h)", "top_shot_kmh": "fastest shot (km/h)", "on_target": "shots on target",
                "final_third_passes": "final-third passes", "press_per_min": "pressing per minute",
                "tempo_ppm": "tempo (passes per minute)", "chaos": "chaos index", "passes_completed": "passes completed",
-               "momentum": "momentum (last 5 min)", "teams": "", "snapshot": "", "flow": "", "players": "",
+               "momentum": "momentum (last 5 min)", "pass_difficulty_avg": "pass difficulty (avg /10)",
+               "difficulty": "pass difficulty (/10)", "teams": "", "snapshot": "", "flow": "", "players": "",
                "moments": "", "player_stats": "", "timeline": "", "by_half": "",
                "first_half": "1st half", "second_half": "2nd half"}
 
@@ -175,7 +183,8 @@ def cite(text, moment, names):
     A number can match several facts; the likeliest are shown: percentages for "57%", exact values
     before rounded ones."""
     sources = _number_sources(moment)
-    labels_for = {**PATH_LABELS, "player_stats": moment["evidence"].get("player", "")}
+    labels_for = {**PATH_LABELS, "player_stats": moment["evidence"].get("player", ""),
+                  "value": moment["evidence"].get("metric", "value")}
     percents = set(re.findall(r"(\d+(?:[.,]\d+)?)\s*%", text))
     out = []
     for claim in dict.fromkeys(NUMBER.findall(text)):
@@ -214,6 +223,9 @@ def template(moment, names):
                 else "Chaos: the ball keeps changing hands")
         return (f"{lead} – chaos index {ev['chaos']}, {ev['tempo_ppm']} passes a minute; pressing "
                 f"{names['home']} {press['home']}/min, {names['away']} {press['away']}/min.")
+    if kind == "threshold":
+        extra = f" (difficulty {ev['difficulty']}/10)" if "difficulty" in ev else ""
+        return f"{ev['player']}: {ev['value']:.0f} {ev['unit']} {ev['metric']}{extra}."
     if kind == "player_focus":
         p = ev["player_stats"]
         return (f"{ev['player']}: {ev['action']}. {p['passes_completed']}/{p['passes']} passes, "
@@ -224,7 +236,8 @@ def template(moment, names):
 
 def default_pick(moment):
     graphic = {"goal": "score_update", "big_chance": "player_card", "player_focus": "player_card",
-               "momentum_shift": "momentum", "flow_shift": "flow"}.get(moment["kind"], "stat_compare")
+               "momentum_shift": "momentum", "flow_shift": "flow", "threshold": "indicator"}.get(moment["kind"],
+                                                                                               "stat_compare")
     return {"graphic": graphic, "stat": "xg", "title": moment["headline"][:40], "duration_s": 8}
 
 
@@ -233,6 +246,8 @@ def validate_pick(pick, moment):
     if not isinstance(pick, dict) or pick.get("graphic") not in GRAPHICS:
         return None
     if pick["graphic"] == "player_card" and "player_stats" not in moment["evidence"]:
+        return None
+    if pick["graphic"] == "indicator" and "value" not in moment["evidence"]:
         return None
     title = str(pick.get("title") or "")[:40]
     duration = pick.get("duration_s")
@@ -256,6 +271,8 @@ def build_overlay(pick, moment):
         data["momentum"] = ev["momentum"]
     elif pick["graphic"] == "flow":
         data["flow"] = ev["flow"]
+    elif pick["graphic"] == "indicator":
+        data.update({k: ev[k] for k in ("player", "metric", "value", "unit", "difficulty") if k in ev})
     elif pick["graphic"] == "score_update":
         data.update({k: ev[k] for k in ("player", "xg", "speed_kmh") if k in ev})
     return {"moment_id": moment["id"], "t": moment["t"], "period": moment["period"], "clock": moment["clock"],
@@ -396,7 +413,11 @@ async def commentate(moment, names, prefs):
             system, analysis, pick = recap_prompt(prefs, names), None, default_pick(moment)
         else:
             system = narrator_prompt(prefs, names)
-            analysis, pick = await asyncio.gather(_chat(ANALYST, facts), _direct(facts, moment))
+            director_facts = {**facts, "focus_metric": prefs.get("metric") or None}
+            # a speed/distance indicator always shows its own number; no need to ask the Director
+            directing = (asyncio.sleep(0, default_pick(moment)) if moment["kind"] == "threshold"
+                         else _direct(director_facts, moment))
+            analysis, pick = await asyncio.gather(_chat(ANALYST, facts), directing)
             if fact_check(analysis, moment):
                 analysis = None  # an unverified explanation is worse than none
         text = await _chat(system, {**facts, "analysis": analysis})

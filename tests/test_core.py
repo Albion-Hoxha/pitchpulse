@@ -38,6 +38,28 @@ class SimulatorTest(unittest.TestCase):
                 if k in e:
                     self.assertTrue(0 <= e[k] <= 105, e)
 
+    def test_speed_distance_indicators_and_focus_metric(self):
+        names = {"home": "H", "away": "A"}
+        stats, det, moments = MatchStats(), MomentDetector(names), []
+        for e in simulate(seed=7):
+            stats.update(e)
+            moments += det.check(e, stats)
+        alerts = [m for m in moments if m["kind"] == "threshold"]
+        self.assertTrue(2 <= len(alerts) <= 12, len(alerts))
+        for m in alerts:
+            ev = m["evidence"]
+            self.assertTrue((ev["unit"] == "km/h" and ev["value"] >= 110) or (ev["unit"] == "m" and ev["value"] >= 40))
+            self.assertIn(ev["player"], m["headline"])  # the player is tagged by name
+            self.assertEqual(fact_check(template(m, names), m), [], template(m, names))
+            self.assertEqual(build_overlay(default_pick(m), m)["graphic"], "indicator")
+        goal = next(m for m in moments if m["kind"] == "goal")
+        self.assertIsNone(validate_pick({"graphic": "indicator"}, goal))  # no speed/distance value to show
+        difficulty = stats.snapshot()["teams"]["home"]["pass_difficulty_avg"]
+        self.assertTrue(1 <= difficulty <= 10, difficulty)
+        self.assertIn("pressing", agents._audience({"metric": "pressures"}, names))
+        client = TestClient(server.app)
+        self.assertEqual(client.get("/api/match/stream", params={"metric": "salary"}).status_code, 422)
+
     def test_halves_add_up(self):
         stats = MatchStats()
         for e in simulate(seed=7):

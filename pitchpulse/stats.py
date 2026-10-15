@@ -21,7 +21,7 @@ def pass_difficulty(e):
 def _blank():
     return {"goals": 0, "shots": 0, "on_target": 0, "xg": 0.0, "passes": 0, "passes_completed": 0,
             "final_third_passes": 0, "pressures": 0, "tackles": 0, "interceptions": 0,
-            "possession_seconds": 0.0, "top_shot_kmh": 0.0}
+            "possession_seconds": 0.0, "top_shot_kmh": 0.0, "difficulty_sum": 0.0}
 
 
 class MatchStats:
@@ -60,6 +60,7 @@ class MatchStats:
             bump("passes")
             p["passes"] += 1
             e["difficulty"] = pass_difficulty(e)
+            bump("difficulty_sum", e["difficulty"])
             if e["outcome"] == "complete":
                 bump("passes_completed")
                 p["passes_completed"] += 1
@@ -142,6 +143,7 @@ def _summary(team):
         "possession_pct": round(100 * t["possession_seconds"] / total),
         "passes": t["passes"],
         "pass_accuracy_pct": round(100 * t["passes_completed"] / t["passes"]) if t["passes"] else 0,
+        "pass_difficulty_avg": round(t["difficulty_sum"] / t["passes"], 1) if t["passes"] else 0,
         "final_third_passes": t["final_third_passes"],
         "pressures": t["pressures"], "tackles": t["tackles"], "interceptions": t["interceptions"],
         "top_shot_kmh": t["top_shot_kmh"],

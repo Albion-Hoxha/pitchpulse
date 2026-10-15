@@ -22,7 +22,7 @@ Generative AI could explain and personalise the game, but a broadcaster cannot p
 A calibrated simulator streams football-realistic synthetic events – passes, carries, shots with xG and speed, pressures, tackles and interceptions – for fictional clubs. It averages ~2.6 goals, ~20 shots and ~77% pass accuracy per match, like top-flight football.
 
 **2. Interpret**
-The **Statistician** computes live possession, xG, pass accuracy and difficulty, momentum, per-half stats and **Control vs Chaos** (possessions lost vs completed passes, tempo and pressing per minute).
+The **Statistician** computes live possession, xG, pass distance, accuracy and difficulty, ball and shot speed, momentum, per-half stats and **Control vs Chaos** (possessions lost vs completed passes, tempo and pressing per minute). Players are name-tagged with **speed and distance indicators** when a shot passes 110 km/h or a pass 40 m.
 
 **3. Explain**
 Key moments – goals, big chances, momentum and control/chaos swings – go to the agents. The **Analyst** explains why the moment matters, the **Narrator** voices it, and the **Director** chooses the on-screen graphic and how long it stays.
@@ -34,7 +34,7 @@ The **Fact-Checker** rejects any number or player the match data does not suppor
 A TV-style screen with scorebug, pitch and ball trail, lower-thirds, Director graphics, and momentum and control/chaos meters. Every graphic is also emitted as timed, machine-readable JSON that a rendering partner can sync to the live feed.
 
 **6. Personalise**
-Casual fan or analyst, the club you support, a followed player (player cam), seven languages including Albanian, and spoken commentary with Azure AI Speech neural voices.
+Casual fan or analyst, the club you support, a followed player (player cam), **one metric you care about** (highlighted and woven into every line), seven languages including Albanian, and spoken commentary with Azure AI Speech neural voices that keeps pace with the match.
 
 ---
 
@@ -69,7 +69,8 @@ AI lines arrive as drafts. Nothing reaches the screen or the voice until a human
 - **Resilience** – if Foundry is unreachable, an in-process agent answers instead
 - **Cost protection** – rate limits and an hourly model budget
 - **Security** – HMAC-signed voice lines, managed identity, no secrets
-- **Quality** – 12 automated tests run in CI on every push
+- **Quality** – 13 automated tests run in CI on every push
+- **Observability** – Application Insights traces every request, agent run, MCP call and model call (managed identity, no keys)
 
 ---
 
@@ -79,7 +80,7 @@ AI lines arrive as drafts. Nothing reaches the screen or the voice until a human
 2. Set **Speed 60×**, tick **🔊 Voice**, choose **Language: Albanian** (or any other) and press **▶ Kick off**.
 3. Around minute 33 a goal appears. Watch the lower-third, the Director's graphic and the spoken line, then click **✓ AI · fact-checked ▾** to see the evidence.
 4. Change **Supporting** to the other club, or **Viewer** to *Analyst* – the next lines change tone and depth.
-5. Choose **Follow player** for a player cam, and tick **🎬 Producer** to approve lines before they air.
+5. Choose **Follow player** for a player cam, a **Focus metric** such as *Pressing*, and tick **🎬 Producer** to approve lines before they air.
 6. In **Ask the match**, try *"Who has been most dangerous?"* or *"Kush ka bërë më shumë pasime?"*.
 7. Let the match reach 90' for the AI recap, then change **Match** for a different game.
 

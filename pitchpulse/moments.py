@@ -9,6 +9,9 @@ SWING_LEVEL = 50  # momentum must cross from one side's +50 to the other's
 KEY_PASS_DIFFICULTY = 7.0
 FOCUS_GAP = 240  # match seconds between minor player-focus moments, so they don't flood the screen
 FLOW_GAP = 600  # match seconds between control/chaos calls
+# Speed and distance indicators: ~3 shots and ~3 passes a match cross these (measured on 40 matches).
+SHOT_SPEED_ALERT = 110  # km/h
+LONG_PASS_ALERT = 40  # metres
 FLOW_WARMUP = 300  # the 5-minute window needs filling after each kick-off
 
 
@@ -49,6 +52,12 @@ class MomentDetector:
         elif kind == "full_time":
             side = "home"
             moment(kind, "Full-time", score=e["score"], timeline=self.timeline, by_half=stats.by_half())
+        elif kind == "shot" and e["speed_kmh"] >= SHOT_SPEED_ALERT:
+            moment("threshold", f"{who} – {e['speed_kmh']:.0f} km/h shot", player=who, metric="shot speed",
+                   value=e["speed_kmh"], unit="km/h", xg=e["xg"], outcome=e["outcome"])
+        elif kind == "pass" and e["outcome"] == "complete" and e["length"] >= LONG_PASS_ALERT:
+            moment("threshold", f"{who} – {e['length']:.0f} m pass", player=who, metric="pass distance",
+                   value=e["length"], unit="m", difficulty=e["difficulty"], speed_kmh=e["speed_kmh"])
         elif self.focus and who == self.focus:
             label = self._focus_label(e)
             if label and (kind == "shot" or e["t"] - self.last_focus_t >= FOCUS_GAP):

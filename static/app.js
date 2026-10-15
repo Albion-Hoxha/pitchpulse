@@ -1,21 +1,23 @@
 // Live match screen: consumes /api/match/stream and renders a broadcast-style view.
 const $ = (id) => document.getElementById(id);
 const W = 105, H = 68;
-const STAT_ROWS = [
-  ["Possession", (t) => t.possession_pct, (v) => `${v}%`],
-  ["xG", (t) => t.xg, (v) => v.toFixed(2)],
-  ["Shots", (t) => t.shots, String],
-  ["On target", (t) => t.on_target, String],
-  ["Pass accuracy", (t) => t.pass_accuracy_pct, (v) => `${v}%`],
-  ["Final-third passes", (t) => t.final_third_passes, String],
-  ["Pressures", (t) => t.pressures, String],
-  ["Tackles won", (t) => t.tackles, String],
-  ["Fastest shot", (t) => t.top_shot_kmh, (v) => (v ? `${v} km/h` : "–")],
+const STAT_ROWS = [ // [stat key, label, format]; the viewer's focus metric is highlighted
+  ["possession_pct", "Possession", (v) => `${v}%`],
+  ["xg", "xG", (v) => v.toFixed(2)],
+  ["shots", "Shots", String],
+  ["on_target", "On target", String],
+  ["pass_accuracy_pct", "Pass accuracy", (v) => `${v}%`],
+  ["pass_difficulty_avg", "Pass difficulty (avg /10)", (v) => v.toFixed(1)],
+  ["final_third_passes", "Final-third passes", String],
+  ["pressures", "Pressures", String],
+  ["tackles", "Tackles won", String],
+  ["top_shot_kmh", "Fastest shot", (v) => (v ? `${v} km/h` : "–")],
 ];
-const LABELS = { goal: "Goal", big_chance: "Big chance", momentum_shift: "Momentum", flow_shift: "Control vs chaos", half_time: "Half-time", full_time: "Full-time", player_focus: "Player cam" };
+const LABELS = { goal: "Goal", big_chance: "Big chance", momentum_shift: "Momentum", flow_shift: "Control vs chaos", half_time: "Half-time", full_time: "Full-time", player_focus: "Player cam", threshold: "Speed & distance" };
 const STAT_NAMES = {
   possession_pct: "Possession %", xg: "Expected goals (xG)", shots: "Shots", on_target: "Shots on target",
-  pass_accuracy_pct: "Pass accuracy %", final_third_passes: "Final-third passes", pressures: "Pressures", tackles: "Tackles won",
+  pass_accuracy_pct: "Pass accuracy %", pass_difficulty_avg: "Pass difficulty (avg /10)",
+  final_third_passes: "Final-third passes", pressures: "Pressures", tackles: "Tackles won",
 };
 
 let source = null, lastId = 0, ended = false, lowerThirdTimer = null, graphicTimer = null, teamsInfo = null;
@@ -62,9 +64,10 @@ function renderStats(s) {
   const [h, a] = [s.teams.home, s.teams.away];
   $("home-goals").textContent = h.goals;
   $("away-goals").textContent = a.goals;
-  $("stats").innerHTML = STAT_ROWS.map(([label, get, fmt]) => {
-    const hv = get(h), av = get(a), total = hv + av || 1;
-    return `<div class="stat"><div class="stat-row"><b>${fmt(hv)}</b><span>${label}</span><b>${fmt(av)}</b></div>
+  const focus = $("metric").value;
+  $("stats").innerHTML = STAT_ROWS.map(([key, label, fmt]) => {
+    const hv = h[key] ?? 0, av = a[key] ?? 0, total = hv + av || 1;
+    return `<div class="stat${key === focus ? " focus" : ""}"><div class="stat-row"><b>${fmt(hv)}</b><span>${label}${key === focus ? " ★" : ""}</span><b>${fmt(av)}</b></div>
       <div class="stat-bar"><div class="home" style="width:${(100 * hv) / total}%"></div><div class="away" style="width:${(100 * av) / total}%"></div></div></div>`;
   }).join("");
   const f = s.flow;
@@ -216,6 +219,10 @@ function renderGraphic(o) {
     body = `<div class="g-big ${esc(p.team)}">${esc(p.name)}</div>
       <div class="g-grid"><span>Passes<b>${p.passes_completed}/${p.passes}</b></span><span>Shots<b>${p.shots}</b></span>
       <span>xG<b>${Number(p.xg).toFixed(2)}</b></span><span>Goals<b>${p.goals}</b></span></div>`;
+  } else if (o.graphic === "indicator") {
+    body = `<div class="g-label">${esc(d.metric || "")}</div>
+      <div class="g-huge">${Number(d.value).toFixed(0)}<small> ${esc(d.unit || "")}</small></div>
+      <div>${esc(d.player || "")}${d.difficulty != null ? ` · difficulty ${Number(d.difficulty).toFixed(1)}/10` : ""}</div>`;
   } else if (o.graphic === "flow") {
     const f = d.flow;
     body = `<div class="g-big">${esc(f.state)}</div>
@@ -267,6 +274,7 @@ function start() {
   const params = new URLSearchParams({
     seed: $("seed").value || 0, speed: $("speed").value, start: lastId,
     mode: $("mode").value, favorite: $("favorite").value, language: $("language").value, player: $("player").value,
+    metric: $("metric").value,
   });
   source = new EventSource(`/api/match/stream?${params}`);
   document.body.classList.add("live");
@@ -311,6 +319,7 @@ $("ask-form").addEventListener("submit", async (ev) => {
       body: JSON.stringify({
         question: $("ask-input").value, seed: Number($("seed").value) || 0, until_event: lastId,
         mode: $("mode").value, favorite: $("favorite").value, language: $("language").value, player: $("player").value,
+        metric: $("metric").value,
       }),
     });
     const a = await r.json();
@@ -346,7 +355,7 @@ $("voice").addEventListener("change", () => {
 
 $("play").addEventListener("click", () => (source ? stop() : start()));
 $("seed").addEventListener("change", () => { stop(); reset(); $("play").textContent = "▶ Kick off"; });
-["speed", "mode", "favorite", "language", "player"].forEach((id) =>
+["speed", "mode", "favorite", "language", "player", "metric"].forEach((id) =>
   $(id).addEventListener("change", () => {
     if (id === "player" && !$("player").value) $("player-cam").hidden = true;
     if (source) { stop(); start(); }

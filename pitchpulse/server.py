@@ -13,7 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from . import telemetry, voice
-from .agents import ROSTER, ask_match, commentate
+from .agents import METRICS, ROSTER, ask_match, commentate
 from .limits import RateLimiter, client_ip
 from .mcp_server import MAX_SEED, mcp
 from .moments import MomentDetector
@@ -23,6 +23,7 @@ from .stats import MatchStats
 STATIC = Path(__file__).parent.parent / "static"
 MAX_SLEEP = 1.5  # seconds; keeps long gaps (half-time) short on screen
 NAMES = {"home": HOME.name, "away": AWAY.name}
+METRIC_PATTERN = f"^({'|'.join(METRICS)})?$"  # the viewer's focus metric, or none
 ASK_LIMIT = RateLimiter(10, 600)  # questions per viewer IP per 10 minutes
 VOICE_LIMIT = RateLimiter(60, 600)  # spoken lines per viewer IP per 10 minutes
 MAX_STREAMS_PER_IP = 5  # room for a viewer flipping settings (each change reopens the stream)
@@ -65,6 +66,7 @@ class Question(BaseModel):
     favorite: str = Field("", pattern="^(home|away)?$")
     language: str = Field("English", pattern="^[A-Za-z ]{2,30}$")
     player: str = ""
+    metric: str = Field("", pattern=METRIC_PATTERN)
 
 
 @app.post("/api/ask")
@@ -74,7 +76,7 @@ async def ask(q: Question, request: Request):
         raise HTTPException(422, "player must be a name from /api/teams")
     if not ASK_LIMIT.allow(client_ip(request)):
         raise HTTPException(429, "Too many questions – please wait a few minutes.")
-    prefs = {"mode": q.mode, "favorite": q.favorite, "language": q.language, "player": q.player}
+    prefs = {"mode": q.mode, "favorite": q.favorite, "language": q.language, "player": q.player, "metric": q.metric}
     port = request.scope["server"][1]  # the agent reaches our own MCP server directly, not via the public ingress
     answer = await ask_match(q.question, q.seed, q.until_event, prefs, NAMES, f"http://127.0.0.1:{port}/mcp/")
     return {**answer, **speakable(answer["answer"], answer["source"], q.language)}
@@ -112,7 +114,7 @@ async def stream(request: Request, seed: int = Query(7, ge=0, le=MAX_SEED), spee
                  mode: str = Query("casual", pattern="^(casual|analyst)$"),
                  favorite: str = Query("", pattern="^(home|away)?$"),
                  language: str = Query("English", pattern="^[A-Za-z ]{2,30}$"),
-                 player: str = ""):
+                 player: str = "", metric: str = Query("", pattern=METRIC_PATTERN)):
     """SSE messages: {event, stats, moments, focus?} per match event, and {commentary} (with
     its timed overlay) when the agents finish a moment. `start` resumes after a pause:
     events up to that id are replayed instantly so the stats stay correct."""
@@ -122,7 +124,7 @@ async def stream(request: Request, seed: int = Query(7, ge=0, le=MAX_SEED), spee
     if OPEN_STREAMS[ip] >= MAX_STREAMS_PER_IP:
         raise HTTPException(429, "Too many matches open at once from this address.")
     OPEN_STREAMS[ip] += 1
-    prefs = {"mode": mode, "favorite": favorite, "language": language, "player": player}
+    prefs = {"mode": mode, "favorite": favorite, "language": language, "player": player, "metric": metric}
 
     async def gen():
         try:
