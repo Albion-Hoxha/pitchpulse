@@ -228,7 +228,7 @@ $("ask-form").addEventListener("submit", async (ev) => {
       }),
     });
     const a = await r.json();
-    if (!r.ok) throw new Error(a.detail ? JSON.stringify(a.detail) : r.statusText);
+    if (!r.ok) throw new Error(typeof a.detail === "string" ? a.detail : r.statusText);
     box.className = "ask-answer";
     box.textContent = a.answer;
     const badge = document.createElement("span");

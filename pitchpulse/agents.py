@@ -16,6 +16,7 @@ import os
 import re
 from pathlib import Path
 
+from .limits import RateLimiter
 from .simulator import AWAY, HOME
 
 ENV_FILE = Path(__file__).parent.parent / ".env"
@@ -70,6 +71,13 @@ def _client():
 
 CLIENT = _client()
 MODEL = os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4.1-mini")
+# Global cap on model calls per hour; past it every agent falls back to its template.
+LLM_BUDGET = RateLimiter(int(os.getenv("LLM_CALLS_PER_HOUR", "900")), 3600)
+ASK_COST = 4  # an Ask-the-Match run makes several model calls (tool choice, answer, maybe a rewrite)
+
+
+class BudgetExceeded(Exception):
+    pass
 
 
 def _audience(prefs, names):
@@ -196,6 +204,8 @@ def build_overlay(pick, moment):
 
 
 async def _chat(system, payload, json_mode=False):
+    if not LLM_BUDGET.allow("global"):
+        raise BudgetExceeded("hourly model-call budget used up")
     extra = {"response_format": {"type": "json_object"}} if json_mode else {}
     r = await CLIENT.chat.completions.create(
         model=MODEL, max_completion_tokens=400, **extra,
@@ -235,6 +245,9 @@ async def ask_match(question, seed, until_event, prefs, names, mcp_url):
 
     if CLIENT is None:
         return {"answer": "The AI agents are not configured on this server.", "source": "unavailable", "tools": []}
+    if not LLM_BUDGET.allow("global", ASK_COST):
+        return {"answer": "The data desk is very busy right now – please ask again in a few minutes.",
+                "source": "busy", "tools": []}
     snapshot = match_snapshot(seed, until_event)
     evidence = {"snapshot": snapshot, "moments": key_moments(seed, until_event),
                 "players": [player_stats(p, seed, until_event) for p in ROSTER]}

@@ -16,6 +16,12 @@ PitchPulse turns live **synthetic** match events into verified insights, multili
 Agents run on Azure OpenAI in Microsoft Foundry (`gpt-4.1-mini`). Without credentials, or if a call fails, every step
 falls back to a deterministic template, so the broadcast never stops.
 
+### Cost and abuse protection
+
+The public demo caps model usage: 10 questions per viewer IP per 10 minutes, 5 open matches per IP, and a global
+budget of model calls per hour (`LLM_CALLS_PER_HOUR`, default 900). Past the budget the agents fall back to their
+templates, so the broadcast keeps running without spending more credit.
+
 ### Ask the Match (Microsoft Agent Framework + MCP)
 
 Viewers can ask questions such as *"Which team is pressing harder right now?"*. An **Agent Framework** agent answers

@@ -1,8 +1,11 @@
 import os
 import unittest
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
-from pitchpulse import agents
+from fastapi.testclient import TestClient
+
+from pitchpulse import agents, server
+from pitchpulse.limits import RateLimiter
 
 from pitchpulse.agents import build_overlay, default_pick, fact_check, template, validate_pick
 from pitchpulse.mcp_server import key_moments, match_snapshot, player_stats, top_players
@@ -111,6 +114,21 @@ class SimulatorTest(unittest.TestCase):
         self.assertIn("error", top_players("salary")[0])
         with self.assertRaises(ValueError):
             match_snapshot(-1, 0)
+
+    def test_rate_limits(self):
+        limiter = RateLimiter(3, 60)
+        self.assertEqual([limiter.allow("a", now=t) for t in (0, 1, 2, 3)], [True, True, True, False])
+        self.assertTrue(limiter.allow("b", now=3))  # per key
+        self.assertTrue(limiter.allow("a", now=61))  # window slides
+        self.assertFalse(limiter.allow("a", cost=3, now=61))
+
+        client = TestClient(server.app)
+        fake = AsyncMock(return_value={"answer": "ok", "source": "ai", "tools": []})
+        with patch.object(server, "ask_match", fake), patch.object(server, "ASK_LIMIT", RateLimiter(2, 600)):
+            codes = [client.post("/api/ask", json={"question": "Who leads?"}).status_code for _ in range(3)]
+        self.assertEqual(codes, [200, 200, 429])
+        with patch.dict(server.OPEN_STREAMS, {"testclient": server.MAX_STREAMS_PER_IP}):
+            self.assertEqual(client.get("/api/match/stream").status_code, 429)
 
     def test_keyless_client_builds(self):
         # The deployed app has no key and signs in with its managed identity; that path must import cleanly.
