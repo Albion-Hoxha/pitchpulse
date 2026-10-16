@@ -1,76 +1,295 @@
+![PitchPulse – AI Broadcast Director](docs/cover.png)
+
 # PitchPulse – AI Broadcast Director
 
-AI broadcast control room for football – built for the Microsoft + Premier League *Inside the Game* hackathon.
-PitchPulse turns live **synthetic** match events into verified insights, multilingual commentary and broadcast-ready graphics.
+PitchPulse is an AI-assisted football broadcast experience built around synthetic match data. It combines deterministic match statistics with specialist AI agents to explain important moments, generate broadcast-style commentary, and select contextual graphics.
 
-## Pipeline
+Traditional statistics describe **what happened**. PitchPulse aims to help viewers understand **why it mattered**—while tying explanations to match data.
 
-| Stage | Component | Status |
-| --- | --- | --- |
-| Ingest | `pitchpulse/simulator.py` – synthetic, football-realistic event stream (passes, carries, shots with xG and speed, pressures, tackles, interceptions, goals) | done |
-| Interpret | `pitchpulse/stats.py` – **Statistician**: live possession, xG, pass accuracy and difficulty, momentum, and **control vs chaos** (share of possessions lost, tempo, pressing per minute over the last 5 minutes) | done |
-| Explain | `pitchpulse/moments.py` – rule-based key-moment detection with evidence; `pitchpulse/agents.py` – **Analyst** explains why it matters, **Fact-Checker** rejects any number or player not in the evidence; viewers can open **show evidence** on every line to see where each number and player comes from | done |
-| Render | **Director** agent picks the graphic and its on-screen time → timed, machine-readable overlay JSON; `static/` – live broadcast screen (scorebug, pitch, momentum, lower-thirds, graphics, stats) | done |
-| Personalize | **Narrator** agent: casual / analyst mode, club supported, followed player (player cam), a **focus metric** the viewer cares about (highlighted and woven into every line), 7 languages; full-time **match recap**; optional **spoken commentary** with Azure AI Speech neural voices (including Albanian) | done |
-| Player tags | Name-tagged **speed and distance indicators** when a shot passes 110 km/h or a completed pass 40 m (~6 a match), shown as a big-number graphic; pass distance, accuracy and **difficulty** (team average /10) on screen | done |
+## Live Demo
 
-Agents run on Azure OpenAI in Microsoft Foundry (`gpt-4.1-mini`). Without credentials, or if a call fails, every step
-falls back to a deterministic template, so the broadcast never stops.
+[Open the PitchPulse live demo](https://pitchpulse.livelyfield-1dcb67cb.polandcentral.azurecontainerapps.io)
 
-### Producer mode (human in the loop)
+The demo runs a simulated match; it does not connect to a real-world live football feed. All clubs and players in the simulator are fictional.
 
-With **🎬 Producer** on, every AI line arrives as a draft. Nothing reaches the lower-third, the Director's graphic or
-the voice until a producer clicks **✓ On air**; **✕ Drop** discards it. The fact-checked evidence is right there to
-decide with.
+## The Problem
 
-### Observability
+Scorelines and statistics show events and totals, but they do not always explain the context behind a change in momentum, a big chance, or a shift in control. AI can make those moments easier to understand, but an on-air explanation also needs to be grounded in the available match evidence.
 
-With `APPLICATIONINSIGHTS_CONNECTION_STRING` set, OpenTelemetry sends every request, Agent Framework agent run,
-MCP call and model call (with token usage) to **Azure Application Insights**, plus one span per agent pipeline
-tagged with how it ended: AI or template, Foundry or local agent, Fact-Checker rejections, chosen graphic. The
-exporter signs in with the app's managed identity; key-based ingestion is disabled.
+## Our Solution
 
-### Cost and abuse protection
+PitchPulse simulates a match and computes its statistics and key moments in code. AI agents can then explain and narrate those moments, while a Fact-Checker checks claims against the evidence. The Director selects an appropriate graphic and display duration. If AI is not configured or a model call fails, deterministic commentary and graphics provide a fallback.
 
-The public demo caps model usage: 10 questions per viewer IP per 10 minutes, 5 open matches per IP, and a global
-budget of model calls per hour (`LLM_CALLS_PER_HOUR`, default 900). Past the budget the agents fall back to their
-templates, so the broadcast keeps running without spending more credit.
+## Key Features
 
-### Ask the Match (Microsoft Agent Framework + MCP)
+### ⚽ Live Match Intelligence
 
-Viewers can ask questions such as *"Which team is pressing harder right now?"*. The question goes to the
-**`ask-the-match` agent published in Microsoft Foundry** (`pitchpulse/foundry_agent.py`), which calls the
-**match MCP server** (`pitchpulse/mcp_server.py`, streamable HTTP at `/mcp/`) as a hosted MCP tool. If Foundry is
-unreachable, an in-process **Agent Framework** agent with the same MCP tools answers instead. Either way the
-Fact-Checker verifies the answer against the same data.
+- Simulated score, match clock, possession, shots, shots on target, expected goals (xG), pass accuracy, and other team statistics.
+- A five-minute momentum measure and a **Control vs Chaos** view based on turnovers, completed passes, tempo, and pressing.
+- Rule-based detection of goals, big chances, momentum and flow changes, half-time, full-time, and selected speed or distance thresholds.
+- Name-tagged speed and distance indicators for shots of at least 110 km/h and completed passes of at least 40 m.
+- A broadcast-style interface with a scorebug, animated pitch, live statistics, key moments, lower-thirds, and timed graphics.
+- Match speed, seed, and playback controls. The event stream is simulated and can be accelerated; it is not a real-world live data integration.
 
-Publish or update the Foundry agent (needs the *Foundry User* role on the Foundry resource):
+### 🤖 Multi-Agent AI Broadcast
+
+For a detected moment, the Analyst and Director work from its match evidence. The Narrator produces a viewer-facing line, and the Fact-Checker checks the generated text. Model use is optional; deterministic templates and default graphics are used when AI is unavailable.
+
+### 🎬 Producer Mode
+
+When Producer mode is enabled, AI commentary is held as a draft until a producer approves or drops it. This approval also gates the line's lower-third, Director graphic, and spoken audio.
+
+### 🎨 Personalized Viewing
+
+Viewers can choose casual or analyst commentary, select a supported team, follow a player, and choose a focus metric. These preferences influence the tone and emphasis of commentary; the focus metric is highlighted in the live statistics. The player-follow option adds player statistics and moments to the view.
+
+The interface offers English, Albanian, Spanish, French, German, Portuguese, and Arabic. Optional spoken commentary uses Azure AI Speech; AI-generated lines are spoken in the selected language, while template fallback lines use English.
+
+### 💬 Ask the Match
+
+Ask questions about the match as it stands, such as which team is pressing more. The answer is tied to the selected match seed and last event shown. The assistant can use match tools to retrieve statistics, player data, and key moments; its answer is checked against match evidence, and the interface can show evidence for supported claims.
+
+### 📋 Match Recap
+
+At full-time, PitchPulse can generate a short recap from the result, key-moment timeline, and statistics for each half. As with commentary, a deterministic template is available when AI is not configured or a model call fails.
+
+### 🛡️ Producer and Technical Safeguards
+
+- Match statistics and key-moment detection are computed deterministically, not generated by the language model.
+- Commentary and Ask the Match answers are checked against match evidence; unsupported claims trigger a rewrite or are rejected.
+- Model-backed features fall back to templates if credentials are missing or a call fails.
+- In-memory limits cap questions at 10 per viewer IP per 10 minutes, open match streams at 5 per IP, and model calls at the configured hourly budget (`LLM_CALLS_PER_HOUR`, default `900`).
+- Optional OpenTelemetry export sends application and agent traces to Azure Application Insights when `APPLICATIONINSIGHTS_CONNECTION_STRING` is configured.
+
+## The Five AI Agents
+
+| Role | Responsibility |
+| --- | --- |
+| **Statistician** | Computes deterministic match and player statistics, including xG, possession, pass statistics, momentum, and Control vs Chaos. This is a code-based role, not an LLM-generated source of numbers. |
+| **Analyst** | Explains why a detected moment matters, using its statistics and evidence. |
+| **Director** | Selects a suitable graphic and how long it should remain on screen; its selection is validated and has a deterministic default. |
+| **Narrator** | Writes personalized, broadcast-style commentary and the full-time recap. |
+| **Fact-Checker** | Checks generated numbers and player references against available evidence. For commentary and Ask the Match, unsupported claims prompt one rewrite; a claim that still fails verification is not presented as a verified AI answer. |
+
+## Ask the Match: Agent and MCP Flow
+
+The Ask the Match assistant uses the Model Context Protocol (MCP) to obtain match data:
+
+1. The viewer's question is sent with the match seed and the last event currently shown.
+2. Depending on configuration, the application runs the published `ask-the-match` agent in Microsoft Foundry or an in-process Microsoft Agent Framework agent.
+3. The agent queries the match MCP server for data at that seed and event. The server deterministically replays the synthetic match to reconstruct that point in time.
+4. The available tools are `match_snapshot`, `player_stats`, `top_players`, and `key_moments`.
+5. The answer is checked against the corresponding match snapshot, player statistics, and key moments. Verified claims can be expanded in the interface to show their evidence.
+
+If a configured Foundry agent cannot be reached, the application falls back to the in-process Agent Framework agent. The local agent uses the same match MCP tools.
+
+To publish or update the Foundry agent, set `FOUNDRY_PROJECT_ENDPOINT` and provide an MCP URL reachable by Foundry. The publishing identity needs the **Foundry User** role on the Foundry resource:
 
 ```bash
 FOUNDRY_PROJECT_ENDPOINT=https://<resource>.services.ai.azure.com/api/projects/<project> \
   python -m pitchpulse.foundry_agent publish https://<app-host>/mcp/
-``` MCP tools: `match_snapshot`, `player_stats`, `top_players`, `key_moments` –
-each takes the match `seed` and `until_event`, so any MCP client (GitHub Copilot, a Foundry agent) can query the
-match exactly as it stood at any moment.
-
-All clubs and players are fictional. The simulator is calibrated against typical top-flight averages
-(~2.6 goals, ~20 shots, ~1,100 passes and ~77% pass accuracy per match).
-
-## Run
-
-Requires Python 3.11+.
-
-```bash
-python -m venv .venv && .venv/Scripts/activate   # macOS/Linux: source .venv/bin/activate
-pip install -r requirements.txt
-python -m uvicorn pitchpulse.server:app          # open http://localhost:8000 and press Kick off
-python -m pitchpulse.simulator --seed 7          # print one match as JSON lines
-python -m unittest discover tests                # run the tests
 ```
 
-To enable the AI agents, copy `.env.example` to `.env` and fill in your Foundry endpoint, key and deployment.
+Each MCP tool accepts `seed` and `until_event`; `until_event=0` represents the full match. The server exposes streamable HTTP at `/mcp/`.
 
-The live screen streams `GET /api/match/stream?seed=7&speed=30&mode=casual&favorite=home&player=Mateo%20Ruiz&language=Albanian`
-(Server-Sent Events): one `{event, stats, moments, focus?}` message per match event, and a `{commentary}` message
-when the agents finish a moment. Each commentary carries an `overlay` – `{t, period, clock, graphic, title, duration_s, data}` –
-that a rendering partner can sync to the match feed.
+## System Architecture
+
+![PitchPulse System Architecture](docs/architecture.png)
+
+The architecture diagram is maintained separately and has not yet been added to this repository.
+
+At a high level, the implemented match flow is:
+
+**Synthetic match events → deterministic statistics and key moments → AI agents (when configured) → evidence checks → live broadcast interface**
+
+The simulator emits seeded synthetic events. The Statistician updates match statistics, and rule-based moment detection attaches evidence to notable events. Agent steps can explain and narrate those moments and prepare timed overlays; the Fact-Checker validates generated claims before the interface presents them. Deterministic templates and default graphics are used when AI is unavailable.
+
+For Ask the Match, the application supplies the current seed and event position to an agent. MCP tools replay the synthetic match to that point and return snapshots, player statistics, rankings, or key moments. The resulting answer is checked against the corresponding data before it is marked as verified.
+
+The match stream is served over Server-Sent Events at `GET /api/match/stream`. Each event message includes `{event, stats, moments}` and may include `focus`; agent output arrives as a `{commentary}` message. Commentary includes a timed, machine-readable overlay with fields such as `t`, `period`, `clock`, `graphic`, `title`, `duration_s`, and `data`.
+
+For example, the existing interface requests a stream with parameters like:
+
+```text
+/api/match/stream?seed=7&speed=30&mode=casual&favorite=home&player=Mateo%20Ruiz&language=Albanian
+```
+
+The stream also accepts `start` to resume after an event and `metric` to select a focus metric. The overlay object contains `moment_id`, `t`, `period`, `clock`, `graphic`, `title`, `duration_s`, and graphic-specific `data`; it is structured so a rendering system can synchronize it to the simulated match timeline.
+
+## Technology Stack
+
+| Area | Technologies and use |
+| --- | --- |
+| Application | Python, FastAPI, and Uvicorn provide the web application and API; the interface uses HTML, CSS, and JavaScript. |
+| Match data | A deterministic Python simulator generates synthetic events; Python modules calculate statistics and detect key moments. |
+| AI | Microsoft Foundry with the `gpt-4.1-mini` deployment is supported for model calls. Azure identity can be used instead of an API key. |
+| Agent orchestration | Microsoft Agent Framework is used for agent calls and the in-process Ask the Match fallback. A published Microsoft Foundry agent can also answer questions. |
+| Match data access | Model Context Protocol (MCP) exposes match queries through a streamable HTTP server. |
+| Speech | Azure AI Speech text-to-speech is implemented as an optional spoken-commentary feature. |
+| Hosting and registry | The repository's deployment workflow builds and pushes an image to Azure Container Registry (ACR) and updates Azure Container Apps. |
+| Identity and CI/CD | The deployment workflow uses GitHub Actions with OpenID Connect (OIDC) to log in to Azure. The application supports Entra ID credentials, including managed identity in Azure. |
+| Observability | Azure Application Insights and OpenTelemetry are optional and enabled when an Application Insights connection string is configured. |
+
+GitHub Copilot is documented by the team as a development tool; it is not a runtime dependency. MCP clients such as GitHub Copilot can query the match tools.
+
+## How It Works
+
+1. **Simulate:** A seed determines a repeatable match between fictional clubs and players.
+2. **Measure:** The Statistician folds events into team and player statistics, including possession, xG, pass accuracy, momentum, and flow.
+3. **Detect:** Rule-based logic identifies notable moments and records the supporting match evidence.
+4. **Explain and present:** When configured, the Analyst, Director, and Narrator prepare an explanation, graphic selection, and commentary. The Fact-Checker validates claims and requests a rewrite if needed.
+5. **Render and personalize:** The browser consumes the event stream and displays the score, pitch, statistics, moments, commentary, and overlays using the viewer's preferences.
+6. **Answer questions and recap:** Ask the Match queries the synthetic match through MCP and checks its answer against match data. At full-time, the Narrator can produce a recap from the match timeline and half-by-half statistics.
+
+## Getting Started / Run
+
+### Prerequisites and Python version
+
+- Git.
+- Python 3.12, matching the version used by the repository's GitHub Actions workflow and Docker image. The repository does not declare a minimum supported Python version, so Python 3.11 support is not confirmed.
+- `pip`, included with standard Python installations.
+
+### Clone the repository
+
+If you have not cloned the project yet, run these commands in PowerShell, Command Prompt, Terminal, or your Linux shell:
+
+```text
+git clone https://github.com/Albion-Hoxha/pitchpulse.git
+cd pitchpulse
+```
+
+If you already have the repository, open a terminal and change to its root directory (the directory containing `requirements.txt` and this `README.md`) instead.
+
+### Windows
+
+#### PowerShell
+
+From the project root, create and activate a virtual environment:
+
+```powershell
+py -3.12 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+If PowerShell blocks the activation script, either use the Command Prompt instructions below or allow scripts for this PowerShell process only, then activate:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\.venv\Scripts\Activate.ps1
+```
+
+This process-scoped setting does not change the system-wide execution policy.
+
+#### Command Prompt
+
+From the project root, create and activate the virtual environment:
+
+```bat
+py -3.12 -m venv .venv
+.venv\Scripts\activate.bat
+```
+
+### macOS
+
+From the project root, create and activate the virtual environment:
+
+```bash
+python3.12 -m venv .venv
+source .venv/bin/activate
+```
+
+### Linux
+
+From the project root, create and activate the virtual environment:
+
+```bash
+python3.12 -m venv .venv
+source .venv/bin/activate
+```
+
+### Install dependencies and run
+
+After activating the virtual environment in your terminal, install the project dependencies:
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+Start the FastAPI application:
+
+```bash
+python -m uvicorn pitchpulse.server:app
+```
+
+Open [http://localhost:8000](http://localhost:8000) in your browser, then press **Kick off**. Keep the server running in that terminal. To stop it, press `Ctrl+C`.
+
+With the virtual environment active, you can also run the deterministic simulator and tests. Run these in another terminal with the virtual environment activated, or after stopping the server:
+
+```bash
+python -m pitchpulse.simulator --seed 7
+python -m unittest discover tests
+```
+
+The simulator prints a match as JSON Lines. The test command runs the project's Python test suite.
+
+### Optional AI configuration
+
+The application can run commentary with deterministic templates without model credentials. To enable the optional AI features, copy `.env.example` to `.env` in the project root, then edit `.env` and replace the example values with your own Azure AI / Foundry settings.
+
+PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Command Prompt:
+
+```bat
+copy .env.example .env
+```
+
+macOS or Linux:
+
+```bash
+cp .env.example .env
+```
+
+Configure the variables provided in `.env.example`:
+
+- `AZURE_OPENAI_ENDPOINT`: Azure AI resource endpoint used for model calls.
+- `AZURE_OPENAI_API_KEY`: optional API key. Leave it empty to use Entra ID credentials; for local Azure CLI credentials, sign in with `az login`.
+- `AZURE_OPENAI_DEPLOYMENT`: model deployment name; the example uses `gpt-4.1-mini`.
+- `FOUNDRY_PROJECT_ENDPOINT`: optional Foundry project endpoint for the published Ask the Match agent.
+
+Restart the application after changing `.env`. Do not commit `.env`; it is git-ignored. Azure AI Speech and Application Insights also depend on their corresponding Azure resource configuration.
+
+## Project Structure
+
+| Path | Purpose |
+| --- | --- |
+| `pitchpulse/simulator.py` | Seeded synthetic match event generator. |
+| `pitchpulse/stats.py` | Deterministic match statistics. |
+| `pitchpulse/moments.py` | Rule-based key-moment detection and evidence. |
+| `pitchpulse/agents.py` | Commentary, analysis, graphics, fact-checking, and local Ask the Match orchestration. |
+| `pitchpulse/mcp_server.py` | Match MCP server and query tools. |
+| `pitchpulse/foundry_agent.py` | Publishing and calling the Foundry Ask the Match agent. |
+| `pitchpulse/voice.py` | Optional Azure AI Speech integration. |
+| `pitchpulse/server.py` | FastAPI application, API endpoints, and match event stream. |
+| `static/` | Browser-based broadcast interface. |
+| `tests/` | Python unit and integration tests. |
+| `docs/` | Project submission material and imagery. |
+
+## Team
+
+- Albion Hoxha
+- Afron Makolli
+- Rinesa Sekiraça
+
+## Project Notes
+
+The simulator uses fictional clubs and players and synthetic football match data. Its events are generated in code and are not official data from a league or club. Match seeds make simulated matches repeatable.
+
+Additional project documentation:
+
+- [Project submission overview](docs/submission.md)
+- [Submission checklist](docs/submission-checklist.md)
