@@ -1,0 +1,105 @@
+<mxfile host="app.diagrams.net" modified="2026-10-16T18:20:00.000Z" agent="PitchPulse" version="24.7.17" type="device">
+  <diagram id="pitchpulse-architecture" name="PitchPulse Architecture">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="pipeline-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#14213D;strokeWidth=2;arcSize=3;" vertex="1" parent="1">
+          <mxGeometry x="20" y="20" width="1360" height="365" as="geometry"/>
+        </mxCell>
+        <mxCell id="pipeline-title" value="LIVE MATCH PIPELINE" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontColor=#14213D;fontStyle=1;fontSize=20;" vertex="1" parent="1">
+          <mxGeometry x="40" y="32" width="500" height="32" as="geometry"/>
+        </mxCell>
+        <mxCell id="simulator" value="&lt;b&gt;Simulator&lt;/b&gt;&lt;br&gt;(Synthetic Events)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#A8DADC;strokeColor=#14213D;strokeWidth=2;fontColor=#14213D;fontSize=16;align=center;verticalAlign=middle;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="150" width="180" height="92" as="geometry"/>
+        </mxCell>
+        <mxCell id="statistician" value="&lt;b&gt;Statistician&lt;/b&gt;&lt;br&gt;xG · Possession · Momentum&lt;br&gt;Control vs Chaos" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F4B942;strokeColor=#14213D;strokeWidth=2;fontColor=#14213D;fontSize=15;align=center;verticalAlign=middle;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="260" y="140" width="220" height="112" as="geometry"/>
+        </mxCell>
+        <mxCell id="moment-detector" value="&lt;b&gt;Moment Detector&lt;/b&gt;&lt;br&gt;Goals · Chances · Changes" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#A8DADC;strokeColor=#14213D;strokeWidth=2;fontColor=#14213D;fontSize=15;align=center;verticalAlign=middle;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="520" y="150" width="205" height="92" as="geometry"/>
+        </mxCell>
+        <mxCell id="ai-container" value="AI Agents&lt;br&gt;&lt;font style=&quot;font-size:13px&quot;&gt;Microsoft Foundry · gpt-4.1-mini&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDF3F8;strokeColor=#14213D;strokeWidth=2;fontColor=#14213D;fontStyle=1;fontSize=17;align=center;verticalAlign=top;spacingTop=12;" vertex="1" parent="1">
+          <mxGeometry x="765" y="88" width="405" height="262" as="geometry"/>
+        </mxCell>
+        <mxCell id="analyst" value="Analyst" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#A8DADC;strokeColor=#14213D;strokeWidth=2;fontColor=#14213D;fontSize=15;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="785" y="160" width="145" height="58" as="geometry"/>
+        </mxCell>
+        <mxCell id="director" value="Director" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F4B942;strokeColor=#14213D;strokeWidth=2;fontColor=#14213D;fontSize=15;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="785" y="250" width="145" height="58" as="geometry"/>
+        </mxCell>
+        <mxCell id="narrator" value="Narrator" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#A8DADC;strokeColor=#14213D;strokeWidth=2;fontColor=#14213D;fontSize=15;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1005" y="160" width="145" height="58" as="geometry"/>
+        </mxCell>
+        <mxCell id="fact-checker-pipeline" value="Fact-Checker" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F4B942;strokeColor=#14213D;strokeWidth=2;fontColor=#14213D;fontSize=15;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1005" y="250" width="145" height="58" as="geometry"/>
+        </mxCell>
+        <mxCell id="live-screen" value="&lt;b&gt;Live Screen&lt;/b&gt;&lt;br&gt;Scorebug · Graphics&lt;br&gt;Commentary · Recap" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E63946;strokeColor=#14213D;strokeWidth=2;fontColor=#FFFFFF;fontSize=15;align=center;verticalAlign=middle;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="1210" y="145" width="155" height="102" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="flow-sim-stats" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#14213D;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="simulator" target="statistician"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="flow-stats-moments" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#14213D;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="statistician" target="moment-detector"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="flow-moments-ai" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#14213D;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="moment-detector" target="ai-container"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="flow-ai-screen" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#14213D;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="ai-container" target="live-screen"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="analyst-narrator" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#14213D;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="analyst" target="narrator"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="director-narrator" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#14213D;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="director" target="narrator"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="narrator-checker" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#14213D;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="narrator" target="fact-checker-pipeline"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="checker-rewrite" value="Invalid? Rewrite" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#E63946;strokeWidth=2;endArrow=block;endFill=1;fontColor=#E63946;fontStyle=1;fontSize=12;exitX=0.5;exitY=1;entryX=0.5;entryY=1;" edge="1" parent="1" source="fact-checker-pipeline" target="narrator"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1077" y="330"/><mxPoint x="1077" y="330"/></Array></mxGeometry></mxCell>
+
+        <mxCell id="ask-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#14213D;strokeWidth=2;arcSize=3;" vertex="1" parent="1">
+          <mxGeometry x="20" y="405" width="1360" height="205" as="geometry"/>
+        </mxCell>
+        <mxCell id="ask-title" value="ASK THE MATCH" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontColor=#14213D;fontStyle=1;fontSize=20;" vertex="1" parent="1">
+          <mxGeometry x="40" y="417" width="500" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="viewer" value="Viewer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#A8DADC;strokeColor=#14213D;strokeWidth=2;fontColor=#14213D;fontSize=15;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="45" y="485" width="155" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="foundry-ask-agent" value="&lt;b&gt;Foundry Agent&lt;/b&gt;&lt;br&gt;“ask-the-match”" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F4B942;strokeColor=#14213D;strokeWidth=2;fontColor=#14213D;fontSize=15;align=center;verticalAlign=middle;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="285" y="475" width="220" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="mcp-server" value="&lt;b&gt;MCP Server&lt;/b&gt;&lt;br&gt;4 tools" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#A8DADC;strokeColor=#14213D;strokeWidth=2;fontColor=#14213D;fontSize=15;align=center;verticalAlign=middle;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="590" y="475" width="190" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="fact-checker-ask" value="Fact-Checker" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F4B942;strokeColor=#14213D;strokeWidth=2;fontColor=#14213D;fontSize=15;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="865" y="485" width="180" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="answer-viewer" value="Answer to Viewer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E63946;strokeColor=#14213D;strokeWidth=2;fontColor=#FFFFFF;fontSize=15;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1125" y="485" width="210" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="flow-viewer-agent" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#14213D;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="viewer" target="foundry-ask-agent"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="flow-agent-mcp" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#14213D;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="foundry-ask-agent" target="mcp-server"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="flow-mcp-checker" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#14213D;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="mcp-server" target="fact-checker-ask"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="flow-checker-answer" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#14213D;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="fact-checker-ask" target="answer-viewer"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <mxCell id="cloud-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#14213D;strokeWidth=2;arcSize=3;" vertex="1" parent="1">
+          <mxGeometry x="20" y="630" width="1360" height="245" as="geometry"/>
+        </mxCell>
+        <mxCell id="cloud-title" value="DEPLOYMENT &amp; CLOUD INFRASTRUCTURE" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontColor=#14213D;fontStyle=1;fontSize=20;" vertex="1" parent="1">
+          <mxGeometry x="40" y="642" width="600" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="github" value="GitHub" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#A8DADC;strokeColor=#14213D;strokeWidth=2;fontColor=#14213D;fontSize=15;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="45" y="730" width="165" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="github-actions" value="GitHub Actions&lt;br&gt;(OIDC)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F4B942;strokeColor=#14213D;strokeWidth=2;fontColor=#14213D;fontSize=15;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="300" y="720" width="220" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="acr" value="Azure Container&lt;br&gt;Registry" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#A8DADC;strokeColor=#14213D;strokeWidth=2;fontColor=#14213D;fontSize=15;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="620" y="720" width="210" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="aca" value="Azure Container&lt;br&gt;Apps" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F4B942;strokeColor=#14213D;strokeWidth=2;fontColor=#14213D;fontSize=15;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="930" y="720" width="210" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="foundry-cloud" value="Microsoft&lt;br&gt;Foundry" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E63946;strokeColor=#14213D;strokeWidth=2;fontColor=#FFFFFF;fontSize=15;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1220" y="720" width="145" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="flow-github-actions" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#14213D;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="github" target="github-actions"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="flow-actions-acr" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#14213D;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="github-actions" target="acr"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="flow-acr-aca" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#14213D;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="acr" target="aca"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="flow-aca-foundry" value="Managed Identity" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#E63946;strokeWidth=2;endArrow=block;endFill=1;fontColor=#14213D;fontStyle=1;fontSize=12;" edge="1" parent="1" source="aca" target="foundry-cloud"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
