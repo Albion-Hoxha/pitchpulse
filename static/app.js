@@ -298,6 +298,7 @@ function reset() {
   ended = false;
   lastId = 0;
   $("moments").innerHTML = "";
+  $("stats").innerHTML = "";
   $("trail").innerHTML = "";
   ["lower-third", "graphic", "recap-box", "player-cam"].forEach((id) => ($(id).hidden = true));
   $("clock").textContent = "0:00";  // a new match starts from a clean scorebug
@@ -360,7 +361,7 @@ $("restart").addEventListener("click", () => {
   voiceQueue.length = 0;  // lines from the old run must not be spoken over the new one
   currentAudio?.pause();
   speaking = false;
-  start();
+  $("play").textContent = "▶ Kick off";  // back to 0:00 and wait, like a fresh match
 });
 $("seed").addEventListener("change", () => { stop(); reset(); $("play").textContent = "▶ Kick off"; });
 ["speed", "mode", "favorite", "language", "player", "metric"].forEach((id) =>

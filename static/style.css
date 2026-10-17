@@ -20,13 +20,10 @@ body {
   font: 15px/1.4 "Segoe UI", system-ui, sans-serif;
 }
 
-/* Row 1: brand | match buttons centred. Row 2: viewer controls. */
-.topbar {
-  display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px 12px; align-items: center;
-  padding: 12px 20px; border-bottom: 1px solid var(--line);
-}
-.match-buttons { display: flex; gap: 10px; }
-.topbar .controls { grid-column: 1 / -1; justify-content: center; }
+/* Rows: brand, match buttons centred, viewer controls. */
+.topbar { display: grid; gap: 10px; padding: 12px 20px; border-bottom: 1px solid var(--line); }
+.match-buttons { display: flex; gap: 10px; justify-self: center; }
+.topbar .controls { justify-content: center; }
 .brand { font-weight: 700; font-size: 18px; display: flex; align-items: center; gap: 8px; }
 .brand small { color: var(--muted); font-weight: 400; font-size: 13px; }
 .pulse-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--home); box-shadow: 0 0 0 0 var(--home); }
@@ -213,8 +210,8 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 
 /* Phone: controls in two columns, overlays stack under the pitch so they don't cover it. */
 @media (max-width: 600px) {
-  .topbar { padding: 10px 16px; grid-template-columns: 1fr; }
-  .match-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .topbar { padding: 10px 16px; }
+  .match-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; justify-self: stretch; }
   .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
   .controls label { display: flex; flex-direction: column; gap: 2px; font-size: 12px; }
   .controls input, .controls select { width: 100%; min-height: 36px; }
