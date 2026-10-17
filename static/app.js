@@ -354,6 +354,14 @@ $("voice").addEventListener("change", () => {
 });
 
 $("play").addEventListener("click", () => (source ? stop() : start()));
+$("restart").addEventListener("click", () => {
+  stop();
+  reset();
+  voiceQueue.length = 0;  // lines from the old run must not be spoken over the new one
+  currentAudio?.pause();
+  speaking = false;
+  start();
+});
 $("seed").addEventListener("change", () => { stop(); reset(); $("play").textContent = "▶ Kick off"; });
 ["speed", "mode", "favorite", "language", "player", "metric"].forEach((id) =>
   $(id).addEventListener("change", () => {
