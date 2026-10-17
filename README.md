@@ -12,8 +12,6 @@ Traditional statistics describe **what happened**. PitchPulse aims to help viewe
 
 [Open the PitchPulse live demo](https://pitchpulse.livelyfield-1dcb67cb.polandcentral.azurecontainerapps.io)
 
-These services are configuration-dependent in self-hosted deployments.
-
 The demo runs a simulated match; it does not connect to a real-world live football feed. All clubs and players in the simulator are fictional.
 
 ## The Problem
@@ -37,11 +35,11 @@ PitchPulse simulates a match and computes its statistics and key moments in code
 
 ### 🤖 Multi-Agent AI Broadcast
 
-For a detected moment, the Analyst and Director work from its match evidence. The Narrator produces a viewer-facing line, and the Fact-Checker checks the generated text. Model use is optional; deterministic templates and default graphics are used when AI is unavailable.
+For a regular detected moment, the Analyst and Director work from shared match evidence in parallel. The application checks the Analyst's explanation, then the Narrator uses the match facts and supported analysis to write a viewer-facing line; the Fact-Checker checks that line. Threshold moments use a default graphic, and full-time uses the recap path. Model use is configuration-dependent outside the live demo; deterministic templates and default graphics are fallbacks.
 
 ### 🎬 Producer Mode
 
-When Producer mode is enabled, AI commentary is held as a draft until a producer approves or drops it. This approval also gates the line's lower-third, Director graphic, and spoken audio.
+Producer mode is a frontend option: the commentary appears in the moments list, while its on-air lower-third, Director graphic, and spoken audio wait for On air approval; Drop withholds those outputs. This is not a backend approval API or a persisted workflow.
 
 ### 🎨 Personalized Viewing
 
@@ -51,7 +49,7 @@ The interface offers English, Albanian, Spanish, French, German, Portuguese, and
 
 ### 💬 Ask the Match
 
-Ask questions about the match as it stands, such as which team is pressing more. The answer is tied to the selected match seed and last event shown. The assistant can use match tools to retrieve statistics, player data, and key moments; its answer is checked against match evidence, and the interface can show evidence for supported claims.
+Ask questions about the match as it stands, such as which team is pressing more. The question uses the selected match seed and last event shown. The hosted Foundry agent is used when configured (as in the live demo described here); otherwise an in-process Agent Framework agent is used. Both can call the match MCP tools. Answers are checked against independently replayed match evidence, with one rewrite attempt; verified answers include claim evidence, while unavailable, busy, error, or still-unsupported answers are returned with an appropriate status/message instead.
 
 ### 📋 Match Recap
 
@@ -65,11 +63,11 @@ At full-time, PitchPulse can generate a short recap from the result, key-moment 
 - In-memory limits cap questions at 10 per viewer IP per 10 minutes, open match streams at 5 per IP, and model calls at the configured hourly budget (`LLM_CALLS_PER_HOUR`, default `900`).
 - Optional OpenTelemetry export sends application and agent traces to Azure Application Insights when `APPLICATIONINSIGHTS_CONNECTION_STRING` is configured.
 
-## The Five AI Agents
+## Statistics and AI Roles
 
 | Role | Responsibility |
 | --- | --- |
-| **Statistician** | Computes deterministic match and player statistics, including xG, possession, pass statistics, momentum, and Control vs Chaos. This is a code-based role, not an LLM-generated source of numbers. |
+| **Statistician (code)** | Computes deterministic match and player statistics, including xG, possession, pass statistics, momentum, and Control vs Chaos. This is code, not an LLM agent or an LLM-generated source of numbers. |
 | **Analyst** | Explains why a detected moment matters, using its statistics and evidence. |
 | **Director** | Selects a suitable graphic and how long it should remain on screen; its selection is validated and has a deterministic default. |
 | **Narrator** | Writes personalized, broadcast-style commentary and the full-time recap. |
@@ -106,13 +104,17 @@ The **runtime architecture** diagram shows the chronological commentary and Ask 
 
 ![PitchPulse Runtime Sequence and Data Flow](docs/architecture-runtime.png)
 
+The high-level view maps component responsibilities and boundaries. The runtime view follows events and questions in sequence, including the parallel Analyst and Director outputs on the regular commentary path, Fact-Checker validation, the optional frontend Producer gate, and integrations active in the live demo. Threshold moments and full-time recaps take distinct paths. Speech and Application Insights are active in the live demo; both remain configuration-dependent in other deployments.
+
+Live-demo status reflects the deployment information provided by the team; repository tests do not verify the configuration of the running Azure resources.
+
 At a high level, the implemented match flow is:
 
-**Synthetic match events → deterministic statistics and key moments → AI agents (when configured) → evidence checks → live broadcast interface**
+**Synthetic match events → deterministic statistics and key moments → AI agent orchestration → evidence checks → live broadcast interface**
 
-The simulator emits seeded synthetic events. The Statistician updates match statistics, and rule-based moment detection attaches evidence to notable events. Agent steps can explain and narrate those moments and prepare timed overlays; the Fact-Checker validates generated claims before the interface presents them. Deterministic templates and default graphics are used when AI is unavailable.
+The simulator emits seeded synthetic events. The Statistician updates match statistics, and rule-based moment detection attaches evidence to notable events. On the regular AI commentary path, Analyst and Director work in parallel; Narrator uses the match facts and supported Analyst explanation, while the Director's separately validated graphic selection joins the checked line in the completed commentary result. The frontend optionally gates on-air presentation of that result. Deterministic templates and default graphics are used when AI is unavailable.
 
-For Ask the Match, the application supplies the current seed and event position to an agent. MCP tools replay the synthetic match to that point and return snapshots, player statistics, rankings, or key moments. The resulting answer is checked against the corresponding data before it is marked as verified.
+For Ask the Match, the application supplies the current seed and event position to the selected agent. MCP tools replay the synthetic match to that point and return snapshots, player statistics, rankings, or key moments. The answer is checked against independently replayed match evidence; only accepted answers are returned as verified with evidence.
 
 The match stream is served over Server-Sent Events at `GET /api/match/stream`. Each event message includes `{event, stats, moments}` and may include `focus`; agent output arrives as a `{commentary}` message. Commentary includes a timed, machine-readable overlay with fields such as `t`, `period`, `clock`, `graphic`, `title`, `duration_s`, and `data`.
 
@@ -133,10 +135,10 @@ The stream also accepts `start` to resume after an event and `metric` to select 
 | AI | Microsoft Foundry with the `gpt-4.1-mini` deployment is supported for model calls. Azure identity can be used instead of an API key. |
 | Agent orchestration | Microsoft Agent Framework is used for agent calls and the in-process Ask the Match fallback. A published Microsoft Foundry agent can also answer questions. |
 | Match data access | Model Context Protocol (MCP) exposes match queries through a streamable HTTP server. |
-| Speech | Azure AI Speech text-to-speech is implemented as an optional spoken-commentary feature. |
+| Speech | Azure AI Speech text-to-speech is implemented through the HTTP endpoint and `POST /api/voice`; active in the live demo, configuration-dependent in other deployments. The browser requests speech only when Voice is enabled. |
 | Hosting and registry | The repository's deployment workflow builds and pushes an image to Azure Container Registry (ACR) and updates Azure Container Apps. |
 | Identity and CI/CD | The deployment workflow uses GitHub Actions with OpenID Connect (OIDC) to log in to Azure. The application supports Entra ID credentials, including managed identity in Azure. |
-| Observability | Azure Application Insights and OpenTelemetry are optional and enabled when an Application Insights connection string is configured. |
+| Observability | OpenTelemetry export to Azure Application Insights is active in the live demo and initializes when `APPLICATIONINSIGHTS_CONNECTION_STRING` is configured; optional in other deployments. |
 
 GitHub Copilot is documented by the team as a development tool; it is not a runtime dependency. MCP clients such as GitHub Copilot can query the match tools.
 
@@ -145,7 +147,7 @@ GitHub Copilot is documented by the team as a development tool; it is not a runt
 1. **Simulate:** A seed determines a repeatable match between fictional clubs and players.
 2. **Measure:** The Statistician folds events into team and player statistics, including possession, xG, pass accuracy, momentum, and flow.
 3. **Detect:** Rule-based logic identifies notable moments and records the supporting match evidence.
-4. **Explain and present:** When configured, the Analyst, Director, and Narrator prepare an explanation, graphic selection, and commentary. The Fact-Checker validates claims and requests a rewrite if needed.
+4. **Explain and present:** On the regular commentary path, the Analyst and Director run in parallel; Narrator uses the match facts and supported analysis to write commentary, while the Director's validated graphic overlay is joined to the result. The Fact-Checker checks numbers and recognized player names and requests one rewrite if needed. Threshold moments and full-time recaps follow different paths.
 5. **Render and personalize:** The browser consumes the event stream and displays the score, pitch, statistics, moments, commentary, and overlays using the viewer's preferences.
 6. **Answer questions and recap:** Ask the Match queries the synthetic match through MCP and checks its answer against match data. At full-time, the Narrator can produce a recap from the match timeline and half-by-half statistics.
 
