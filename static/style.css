@@ -141,7 +141,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .badge { display: inline-block; font-size: 11px; font-weight: 700; border-radius: 4px; padding: 0 6px; vertical-align: middle; border: 0; cursor: pointer; font-family: inherit; }
 .badge:disabled { cursor: default; }
 .moments .draft { background: rgba(247, 201, 72, 0.06); }
-.moments .dropped .commentary, .moments .dropped .analysis { text-decoration: line-through; opacity: 0.5; }
+.moments .dropped .commentary, .moments .dropped .analysis { text-decoration: line-through; opacity: 0.75; } /* 0.5 fell below 4.5:1 contrast */
 .review { display: flex; gap: 6px; margin-top: 6px; }
 .review button { padding: 3px 10px; font-size: 12px; }
 .review .drop { background: var(--line); color: var(--text); }
@@ -165,6 +165,34 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 @keyframes pop { from { transform: scale(0.85); opacity: 0; } }
 @keyframes from-centre { from { left: 50%; } }
 
+/* Before kick-off (no trail drawn yet) a hint sits in the middle of the pitch. */
+.kickoff-hint {
+  display: none; position: absolute; top: 0; left: 0; width: 100%; aspect-ratio: 113 / 76; margin: 0;
+  align-items: center; justify-content: center; text-align: center; pointer-events: none; font-size: 16px;
+  padding: 0 16px; background: rgba(7, 16, 28, 0.45);
+}
+.screen:has(#trail:empty) .kickoff-hint { display: flex; }
+.kickoff-hint span { background: rgba(8, 14, 26, 0.92); border-radius: 6px; padding: 10px 16px; }
+.kickoff-hint b { color: var(--accent); }
+
+/* Long lower-third lines stop at two lines with an ellipsis. */
+.lt-kind { flex-shrink: 0; display: flex; align-items: center; }
+.lt-text {
+  flex: 1; min-width: 0; overflow-wrap: anywhere; padding: 0 14px; margin: 10px 0; /* margin, not padding: a clamped 3rd line would show in the padding */
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;
+}
+
+/* Typing dots while the agents (or the Ask desk) are still writing. */
+.moments .commentary.pending::after, .ask-answer.pending::after {
+  content: ""; display: inline-block; width: 5px; height: 5px; margin: 0 18px 0 8px; border-radius: 50%;
+  vertical-align: middle; animation: typing 1s infinite;
+}
+@keyframes typing {
+  0%, 100% { background: var(--accent); box-shadow: 8px 0 var(--line), 16px 0 var(--line); }
+  33% { background: var(--line); box-shadow: 8px 0 var(--accent), 16px 0 var(--line); }
+  66% { background: var(--line); box-shadow: 8px 0 var(--line), 16px 0 var(--accent); }
+}
+
 /* Phone: controls in two columns, overlays stack under the pitch so they don't cover it. */
 @media (max-width: 600px) {
   .topbar { padding: 10px 16px; }
@@ -182,6 +210,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
   .lower-third, .graphic, .player-cam, .momentum { position: static; width: auto; margin: 8px 8px 0; }
   .lower-third { order: 2; animation-name: fade; }
   .lt-kind, .lt-text { padding: 8px 10px; font-size: 14px; }
+  .lt-text { padding-block: 0; margin-block: 8px; }
   .graphic { order: 3; }
   .player-cam { order: 4; }
   .momentum { order: 5; margin-bottom: 8px; }
