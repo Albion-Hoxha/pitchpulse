@@ -6,7 +6,7 @@ The live demo runs with every AI feature enabled: Foundry agents, Fact-Checker, 
 
 PitchPulse is an AI-assisted football broadcast experience built around synthetic match data. It combines deterministic match statistics with specialist AI agents to explain important moments, generate broadcast-style commentary, and select contextual graphics.
 
-Traditional statistics describe **what happened**. PitchPulse aims to help viewers understand **why it mattered**—while tying explanations to match data.
+Traditional statistics describe **what happened**. PitchPulse helps viewers understand **why it mattered**—while tying explanations to match data.
 
 ## Live Demo
 
@@ -35,11 +35,11 @@ PitchPulse simulates a match and computes its statistics and key moments in code
 
 ### 🤖 Multi-Agent AI Broadcast
 
-For a regular detected moment, the Analyst and Director work from shared match evidence in parallel. The application checks the Analyst's explanation, then the Narrator uses the match facts and supported analysis to write a viewer-facing line; the Fact-Checker checks that line. Threshold moments use a default graphic, and full-time uses the recap path. Model use is configuration-dependent outside the live demo; deterministic templates and default graphics are fallbacks.
+For a regular detected moment, the Analyst and Director work from shared match evidence in parallel. The application checks the Analyst's explanation, then the Narrator uses the match facts and supported analysis to write a viewer-facing line; the Fact-Checker checks that line. Threshold moments use a default graphic, and full-time uses the recap path. Deterministic templates and default graphics are fallbacks.
 
 ### 🎬 Producer Mode
 
-Producer mode is a frontend option: the commentary appears in the moments list, while its on-air lower-third, Director graphic, and spoken audio wait for On air approval; Drop withholds those outputs. This is not a backend approval API or a persisted workflow.
+Producer mode is a frontend option: the commentary appears in the moments list, while its on-air lower-third, Director graphic, and spoken audio wait for On air approval; Drop withholds those outputs.
 
 ### 🎨 Personalized Viewing
 
@@ -105,8 +105,6 @@ The **runtime architecture** diagram shows the chronological commentary and Ask 
 ![PitchPulse Runtime Sequence and Data Flow](docs/architecture-runtime.png)
 
 The high-level view maps component responsibilities and boundaries. The runtime view follows events and questions in sequence, including the parallel Analyst and Director outputs on the regular commentary path, Fact-Checker validation, the optional frontend Producer gate, and integrations active in the live demo. Threshold moments and full-time recaps take distinct paths. Speech and Application Insights are active in the live demo; both remain configuration-dependent in other deployments.
-
-Live-demo status reflects the deployment information provided by the team; repository tests do not verify the configuration of the running Azure resources.
 
 At a high level, the implemented match flow is:
 
