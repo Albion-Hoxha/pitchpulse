@@ -45,6 +45,16 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 
 .layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; padding: 20px; align-items: start; } /* the pitch box must not stretch with a long panel */
 @media (max-width: 900px) { .layout { grid-template-columns: 1fr; padding: 16px; } }
+/* Desktop: the whole broadcast fits on one screen; the pitch scales to the space left under the controls. */
+@media (min-width: 901px) {
+  body { height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+  .layout { flex: 1; min-height: 0; grid-template-rows: minmax(0, 1fr); container-type: size; }
+  .screen { width: min(100%, 100cqh * 113 / 76); justify-self: center; } /* 113:76 = pitch viewBox */
+  .panel { height: 100%; overflow-y: auto; display: flex; flex-direction: column; }
+  .panel .moments { flex: 1 0 120px; max-height: none; }
+  .panel .stat { margin-bottom: 4px; }
+  .panel h2:not(:first-child) { margin-top: 14px; }
+}
 
 .screen { position: relative; background: #07101c; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); }
 #pitch { display: block; width: 100%; height: auto; }
