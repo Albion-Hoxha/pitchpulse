@@ -10,6 +10,10 @@ Traditional statistics describe **what happened**. PitchPulse aims to help viewe
 
 [Open the PitchPulse live demo](https://pitchpulse.livelyfield-1dcb67cb.polandcentral.azurecontainerapps.io)
 
+The live demo runs with every AI feature enabled: Foundry agents, Fact-Checker, voice and Application Insights.
+
+These services are configuration-dependent in self-hosted deployments.
+
 The demo runs a simulated match; it does not connect to a real-world live football feed. All clubs and players in the simulator are fictional.
 
 ## The Problem
@@ -94,9 +98,13 @@ Each MCP tool accepts `seed` and `until_event`; `until_event=0` represents the f
 
 ## System Architecture
 
-![PitchPulse System Architecture](docs/architecture.png)
+The **high-level architecture** diagram shows the system's components, boundaries, and integrations:
 
-The architecture diagram is maintained separately and has not yet been added to this repository.
+![PitchPulse High-Level System Architecture](docs/architecture.png)
+
+The **runtime architecture** diagram shows the chronological commentary and Ask the Match flows, plus deployment, identity, and observability:
+
+![PitchPulse Runtime Sequence and Data Flow](docs/architecture-runtime.png)
 
 At a high level, the implemented match flow is:
 
