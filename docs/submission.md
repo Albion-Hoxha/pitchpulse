@@ -69,7 +69,7 @@ AI lines arrive as drafts. Nothing reaches the screen or the voice until a human
 - **Resilience** – if Foundry is unreachable, an in-process agent answers instead
 - **Cost protection** – rate limits and an hourly model budget
 - **Security** – HMAC-signed voice lines, managed identity, no secrets
-- **Quality** – 13 automated tests run in CI on every push
+- **Quality** – 14 automated tests run in CI on every push
 - **Observability** – Application Insights traces every request, agent run, MCP call and model call (managed identity, no keys)
 
 ---
