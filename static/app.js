@@ -267,6 +267,11 @@ function stop() {
   source = null;
   document.body.classList.remove("live");
   $("play").textContent = ended ? "↻ New match" : "▶ Resume";
+  // closing the stream cancels the agents' unfinished lines on the server, so don't leave them "on it" forever
+  document.querySelectorAll("#moments .commentary.pending").forEach((p) => {
+    p.classList.remove("pending");
+    p.textContent = "Paused before the agents finished this line.";
+  });
 }
 
 function start() {
