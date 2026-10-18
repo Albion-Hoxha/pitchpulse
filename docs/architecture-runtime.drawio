@@ -20,7 +20,7 @@
         <mxCell id="legend-optional" value="Config-dependent" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontSize=15;fontStyle=1;fontColor=#14213D;fillColor=#FFFFFF;strokeColor=#E63946;strokeWidth=1.7;dashed=1;" vertex="1" parent="1">
           <mxGeometry x="702" y="151" width="205" height="36" as="geometry" />
         </mxCell>
-        <mxCell id="section-0" value="A  LIVE MATCH  ·  COMMENTARY SEQUENCE + PARALLEL AGENTS" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=24;spacingTop=16;fontStyle=1;fontSize=18;fontColor=#14213D;fillColor=#F4F6F9;strokeColor=#CCD3DC;strokeWidth=1.4;" vertex="1" parent="1">
+        <mxCell id="section-0" value="A  LIVE MATCH  ·  COMMENTARY SEQUENCE + PARALLEL AGENTS" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=36;spacingTop=16;fontStyle=1;fontSize=18;fontColor=#14213D;fillColor=#F4F6F9;strokeColor=#CCD3DC;strokeWidth=1.4;" vertex="1" parent="1">
           <mxGeometry x="36" y="212" width="1728" height="770" as="geometry" />
         </mxCell>
         <mxCell id="section-1" value="B  ASK THE MATCH  ·  QUESTION / ANSWER SEQUENCE" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=24;spacingTop=16;fontStyle=1;fontSize=18;fontColor=#14213D;fillColor=#FFFFFF;strokeColor=#CCD3DC;strokeWidth=1.4;" vertex="1" parent="1">
@@ -52,20 +52,20 @@
             <Array as="points" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="e-r-det-analyst" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#14213D;strokeWidth=2;endArrow=block;startArrow=none;endFill=1;dashed=0;fontSize=14;fontStyle=1;fontColor=#FFFFFF;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="detector" target="analyst">
+        <mxCell id="e-r-det-analyst" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#14213D;strokeWidth=2;endArrow=block;startArrow=none;endFill=1;dashed=0;fontSize=14;fontStyle=1;fontColor=#FFFFFF;" edge="1" parent="1" source="detector" target="analyst">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="827" y="425" />
-              <mxPoint x="203" y="425" />
+              <mxPoint x="827" y="400" />
+              <mxPoint x="203" y="400" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="e-r-det-director" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#14213D;strokeWidth=2;endArrow=block;startArrow=none;endFill=1;dashed=0;fontSize=14;fontStyle=1;fontColor=#FFFFFF;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="detector" target="director">
+        <mxCell id="e-r-det-director" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#14213D;strokeWidth=2;endArrow=block;startArrow=none;endFill=1;dashed=0;fontSize=14;fontStyle=1;fontColor=#FFFFFF;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=1;" edge="1" parent="1" source="detector" target="director">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="986" y="310" />
-              <mxPoint x="986" y="600" />
-              <mxPoint x="203" y="600" />
+              <mxPoint x="827" y="380" />
+              <mxPoint x="50" y="380" />
+              <mxPoint x="50" y="674" />
             </Array>
           </mxGeometry>
         </mxCell>
@@ -76,9 +76,10 @@
         </mxCell>
         <mxCell id="e-r-facts-narrator" value="moment facts" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#14213D;strokeWidth=2;endArrow=block;startArrow=none;endFill=1;dashed=0;fontSize=14;fontStyle=1;fontColor=#14213D;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="detector" target="narrator">
           <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" x="4.646" y="0" />
             <Array as="points">
-              <mxPoint x="827" y="430" />
-              <mxPoint x="515" y="430" />
+              <mxPoint x="827" y="438" />
+              <mxPoint x="515" y="438" />
             </Array>
           </mxGeometry>
         </mxCell>
@@ -92,11 +93,13 @@
             <Array as="points" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="e-r-fc-retry" value="one rewrite attempt (orchestration)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#14213D;strokeWidth=1.8;endArrow=block;startArrow=none;endFill=1;dashed=0;fontSize=14;fontStyle=1;fontColor=#14213D;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="checked-line" target="narrator">
+        <mxCell id="e-r-fc-retry" value="one rewrite attempt" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#14213D;strokeWidth=1.8;endArrow=block;startArrow=none;endFill=1;dashed=0;fontSize=14;fontStyle=1;fontColor=#14213D;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;entryPerimeter=1;" edge="1" parent="1" source="checked-line" target="narrator">
           <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" x="3.021" y="0" />
             <Array as="points">
-              <mxPoint x="827" y="594" />
-              <mxPoint x="515" y="594" />
+              <mxPoint x="980" y="515" />
+              <mxPoint x="980" y="618" />
+              <mxPoint x="515" y="618" />
             </Array>
           </mxGeometry>
         </mxCell>
@@ -131,21 +134,24 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="e-r-prod-air" value="Approve" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#14213D;strokeWidth=2;endArrow=block;startArrow=none;endFill=1;dashed=0;fontSize=14;fontStyle=1;fontColor=#14213D;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="producer" target="onscreen">
+        <mxCell id="e-r-prod-air" value="Approve" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#14213D;strokeWidth=2;endArrow=block;startArrow=none;endFill=1;dashed=0;fontSize=14;fontStyle=1;fontColor=#14213D;" edge="1" parent="1" source="producer" target="onscreen">
           <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" x="0" y="-5.12" />
             <Array as="points" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="e-r-direct" value="Producer off" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#14213D;strokeWidth=2;endArrow=block;startArrow=none;endFill=1;dashed=0;fontSize=14;fontStyle=1;fontColor=#14213D;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="payload" target="onscreen">
+        <mxCell id="e-r-direct" value="Producer off" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#14213D;strokeWidth=2;endArrow=block;startArrow=none;endFill=1;dashed=0;fontSize=14;fontStyle=1;fontColor=#14213D;exitX=1;exitY=0.5;exitDx=0;exitPerimeter=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=1;" edge="1" parent="1" source="payload" target="onscreen">
           <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" x="-8.888" y="0" />
             <Array as="points">
-              <mxPoint x="1518" y="576" />
-              <mxPoint x="1518" y="724" />
+              <mxPoint x="1770" y="576" />
+              <mxPoint x="1770" y="724" />
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="e-r-air-voice" value="on-air line" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#14213D;strokeWidth=2;endArrow=block;startArrow=none;endFill=1;dashed=0;fontSize=14;fontStyle=1;fontColor=#14213D;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="onscreen" target="voice-toggle">
           <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" x="5.62" y="0" />
             <Array as="points">
               <mxPoint x="1625" y="790" />
               <mxPoint x="240" y="790" />
@@ -215,46 +221,49 @@
         <mxCell id="e-runtime-app" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#14213D;strokeWidth=2;endArrow=block;startArrow=none;endFill=1;dashed=0;fontSize=14;fontStyle=1;fontColor=#14213D;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="aca" target="runtime-aca">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="1515" y="1550" />
-              <mxPoint x="420" y="1550" />
+              <mxPoint x="1515" y="1542" />
+              <mxPoint x="420" y="1542" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="e-runtime-identity" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#E63946;strokeWidth=1.8;endArrow=block;startArrow=none;endFill=1;dashed=1;fontSize=14;fontStyle=1;fontColor=#14213D;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="runtime-aca" target="managed-id">
+        <mxCell id="e-runtime-identity" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#14213D;strokeWidth=1.8;endArrow=block;startArrow=none;endFill=1;dashed=0;fontSize=14;fontStyle=1;fontColor=#14213D;" edge="1" parent="1" source="runtime-aca" target="managed-id">
           <mxGeometry relative="1" as="geometry">
             <Array as="points" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="e-identity-foundry" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#14213D;strokeWidth=1.8;endArrow=block;startArrow=none;endFill=1;dashed=0;fontSize=14;fontStyle=1;fontColor=#14213D;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="managed-id" target="foundry">
+        <mxCell id="e-identity-foundry" value="Managed Identity&lt;br&gt;auth" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#14213D;strokeWidth=1.8;endArrow=block;startArrow=none;endFill=1;dashed=0;fontSize=12;fontStyle=1;fontColor=#14213D;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="managed-id" target="foundry">
           <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" x="-5.405" y="0" />
             <Array as="points" />
           </mxGeometry>
         </mxCell>
         <mxCell id="e-runtime-insights" value="OpenTelemetry · Entra ID" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#14213D;strokeWidth=1.8;endArrow=block;startArrow=none;endFill=1;dashed=0;fontSize=14;fontStyle=1;fontColor=#14213D;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="runtime-aca" target="app-insights">
           <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" x="-4.399" y="0" />
             <Array as="points">
-              <mxPoint x="237" y="1708" />
-              <mxPoint x="1594" y="1708" />
+              <mxPoint x="237" y="1700" />
+              <mxPoint x="1594" y="1700" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="e-runtime-openai" value="model calls; Entra ID if keyless" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#14213D;strokeWidth=1.8;endArrow=block;startArrow=none;endFill=1;dashed=0;fontSize=14;fontStyle=1;fontColor=#14213D;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="runtime-aca" target="azure-openai">
+        <mxCell id="e-runtime-foundry" value="model calls · Entra ID · no API keys" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#14213D;strokeWidth=1.8;endArrow=block;startArrow=none;endFill=1;dashed=0;fontSize=14;fontStyle=1;fontColor=#14213D;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="runtime-aca" target="foundry">
           <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" x="-2.157" y="0" />
             <Array as="points">
               <mxPoint x="420" y="1639" />
-              <mxPoint x="420" y="1560" />
-              <mxPoint x="1281" y="1560" />
+              <mxPoint x="420" y="1578" />
+              <mxPoint x="1160" y="1578" />
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="commentary-paths" value="&lt;b&gt;Commentary paths&lt;/b&gt;&lt;br&gt;Regular: Analyst + Director parallel → Narrator · Threshold: Analyst/Narrator + default indicator · Full-time: recap + default graphic" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=8;fontSize=13;fontColor=#14213D;fillColor=#FFFFFF;strokeColor=#CCD3DC;strokeWidth=1.2;" vertex="1" parent="1">
-          <mxGeometry x="390" y="740" width="900" height="58" as="geometry" />
+          <mxGeometry x="390" y="722" width="900" height="58" as="geometry" />
         </mxCell>
         <mxCell id="e-ask-independent-evidence" value="independent evidence" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#14213D;strokeWidth=1.8;endArrow=block;startArrow=none;endFill=1;dashed=0;fontSize=12;fontStyle=1;fontColor=#14213D;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="mcp-note" target="answer">
-          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1377" y="1180" /></Array></mxGeometry>
+          <mxGeometry relative="1" as="geometry"><mxPoint as="offset" x="0" y="5.405" /><Array as="points"><mxPoint x="1377" y="1180" /></Array></mxGeometry>
         </mxCell>
-        <mxCell id="e-ask-voice" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#14213D;strokeWidth=1.8;endArrow=block;startArrow=none;endFill=1;dashed=0;fontSize=12;fontStyle=1;fontColor=#14213D;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="answer-ui" target="voice-api">
-          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1740" y="1113" /><mxPoint x="1740" y="916" /><mxPoint x="655" y="916" /><mxPoint x="655" y="810" /></Array></mxGeometry>
+        <mxCell id="e-ask-voice" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#14213D;strokeWidth=1.8;endArrow=block;startArrow=none;endFill=1;dashed=0;fontSize=12;fontStyle=1;fontColor=#14213D;" edge="1" parent="1" source="answer-ui" target="voice-api">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1740" y="1113" /><mxPoint x="1740" y="960" /><mxPoint x="655" y="960" /><mxPoint x="655" y="810" /></Array></mxGeometry>
         </mxCell>
         <mxCell id="ask-voice-note" value="Ask answer voice · browser only when enabled" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;fontColor=#14213D;fillColor=#FFFFFF;strokeColor=#CCD3DC;strokeWidth=1;" vertex="1" parent="1">
           <mxGeometry x="900" y="922" width="430" height="26" as="geometry" />
@@ -268,7 +277,7 @@
         <mxCell id="detector" value="&lt;b&gt;3  MomentDetector&lt;/b&gt;&lt;br&gt;Detect moment + evidence&lt;br&gt;Regular / threshold / full-time paths" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=10;fontSize=14;fontColor=#14213D;fontStyle=0;fillColor=#A8DADC;strokeColor=#14213D;strokeWidth=1.7;dashed=0;" vertex="1" parent="1">
           <mxGeometry x="702" y="270" width="250" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="sse" value="&lt;b&gt;4a  FastAPI SSE&lt;/b&gt;&lt;br&gt;Event + updated stats&lt;br&gt;Moments + optional focus" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=10;fontSize=15;fontColor=#14213D;fontStyle=0;fillColor=#A8DADC;strokeColor=#14213D;strokeWidth=1.7;dashed=0;" vertex="1" parent="1">
+        <mxCell id="sse" value="&lt;b&gt;4  FastAPI SSE&lt;/b&gt;&lt;br&gt;Event + updated stats&lt;br&gt;Moments + optional focus" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=10;fontSize=15;fontColor=#14213D;fontStyle=0;fillColor=#A8DADC;strokeColor=#14213D;strokeWidth=1.7;dashed=0;" vertex="1" parent="1">
           <mxGeometry x="1014" y="270" width="250" height="80" as="geometry" />
         </mxCell>
         <mxCell id="live-ui" value="&lt;b&gt;Live match UI&lt;/b&gt;&lt;br&gt;Renders event, score + stats" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=10;fontSize=16;fontColor=#14213D;fontStyle=0;fillColor=#A8DADC;strokeColor=#14213D;strokeWidth=1.7;dashed=0;" vertex="1" parent="1">
@@ -292,8 +301,8 @@
         <mxCell id="overlay" value="&lt;b&gt;Director overlay&lt;/b&gt;&lt;br&gt;Graphic choice + evidence data" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=10;fontSize=16;fontColor=#14213D;fontStyle=0;fillColor=#A8DADC;strokeColor=#14213D;strokeWidth=1.7;dashed=0;" vertex="1" parent="1">
           <mxGeometry x="1014" y="630" width="250" height="88" as="geometry" />
         </mxCell>
-        <mxCell id="payload" value="&lt;b&gt;8  Commentary SSE message&lt;/b&gt;&lt;br&gt;Checked line + separate overlay" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=8;fontSize=14;fontColor=#14213D;fontStyle=0;fillColor=#A8DADC;strokeColor=#14213D;strokeWidth=1.7;dashed=0;" vertex="1" parent="1">
-          <mxGeometry x="1280" y="520" width="200" height="112" as="geometry" />
+        <mxCell id="payload" value="&lt;b&gt;8  Commentary SSE message&lt;/b&gt;&lt;br&gt;Checked line + separate overlay&lt;br&gt;+ evidence (✓ fact-checked)" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=8;fontSize=13;fontColor=#14213D;fontStyle=0;fillColor=#A8DADC;strokeColor=#14213D;strokeWidth=1.7;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="514" width="220" height="124" as="geometry" />
         </mxCell>
         <mxCell id="producer" value="&lt;b&gt;9  Producer mode&lt;/b&gt;&lt;br&gt;Frontend-only approval&lt;br&gt;On air / Drop" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=10;fontSize=16;fontColor=#14213D;fontStyle=0;fillColor=#A8DADC;strokeColor=#E63946;strokeWidth=1.7;dashed=1;" vertex="1" parent="1">
           <mxGeometry x="1530" y="460" width="190" height="88" as="geometry" />
@@ -307,7 +316,7 @@
         <mxCell id="voice-api" value="&lt;b&gt;POST /api/voice&lt;/b&gt;&lt;br&gt;FastAPI verifies line token + rate limit" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=10;fontSize=16;fontColor=#14213D;fontStyle=0;fillColor=#A8DADC;strokeColor=#14213D;strokeWidth=1.7;dashed=0;" vertex="1" parent="1">
           <mxGeometry x="490" y="828" width="330" height="76" as="geometry" />
         </mxCell>
-        <mxCell id="speech" value="&lt;b&gt;Azure AI Speech&lt;/b&gt;&lt;br&gt;Live demo active · HTTP SSML → MP3&lt;br&gt;Entra ID if no API key" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=7;fontSize=14;fontColor=#14213D;fontStyle=0;fillColor=#A8DADC;strokeColor=#14213D;strokeWidth=1.7;dashed=0;" vertex="1" parent="1">
+        <mxCell id="speech" value="&lt;b&gt;Azure AI Speech&lt;/b&gt;&lt;br&gt;Live demo active · HTTP SSML → MP3&lt;br&gt;Managed Identity · no API key" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=7;fontSize=14;fontColor=#14213D;fontStyle=0;fillColor=#A8DADC;strokeColor=#14213D;strokeWidth=1.7;dashed=0;" vertex="1" parent="1">
           <mxGeometry x="934" y="818" width="330" height="96" as="geometry" />
         </mxCell>
         <mxCell id="audio" value="&lt;b&gt;Browser audio playback&lt;/b&gt;&lt;br&gt;On-air commentary line" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=10;fontSize=16;fontColor=#14213D;fontStyle=0;fillColor=#A8DADC;strokeColor=#14213D;strokeWidth=1.7;dashed=0;" vertex="1" parent="1">
@@ -352,20 +361,17 @@
         <mxCell id="runtime-aca" value="&lt;b&gt;Runtime&lt;/b&gt;&lt;br&gt;FastAPI + mounted /mcp/" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=10;fontSize=16;fontColor=#14213D;fontStyle=0;fillColor=#A8DADC;strokeColor=#14213D;strokeWidth=1.7;dashed=0;" vertex="1" parent="1">
           <mxGeometry x="72" y="1590" width="330" height="98" as="geometry" />
         </mxCell>
-        <mxCell id="managed-id" value="&lt;b&gt;Managed Identity&lt;/b&gt;&lt;br&gt;Live demo active&lt;br&gt;Azure OpenAI · Foundry · Speech · Insights" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=8;fontSize=14;fontColor=#14213D;fontStyle=0;fillColor=#A8DADC;strokeColor=#14213D;strokeWidth=1.7;dashed=0;" vertex="1" parent="1">
+        <mxCell id="managed-id" value="&lt;b&gt;Managed Identity&lt;/b&gt;&lt;br&gt;Live demo: all configured Azure services&lt;br&gt;No API keys" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=8;fontSize=14;fontColor=#14213D;fontStyle=0;fillColor=#A8DADC;strokeColor=#14213D;strokeWidth=1.7;dashed=0;" vertex="1" parent="1">
           <mxGeometry x="435" y="1590" width="330" height="98" as="geometry" />
         </mxCell>
-        <mxCell id="foundry" value="&lt;b&gt;Azure AI Foundry&lt;/b&gt;&lt;br&gt;Live demo active · hosted Ask agent" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=10;fontSize=16;fontColor=#14213D;fontStyle=0;fillColor=#F4B942;strokeColor=#14213D;strokeWidth=1.7;dashed=0;" vertex="1" parent="1">
-          <mxGeometry x="798" y="1590" width="300" height="98" as="geometry" />
-        </mxCell>
-        <mxCell id="azure-openai" value="&lt;b&gt;Azure OpenAI endpoint&lt;/b&gt;&lt;br&gt;Live demo active · model dependency" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=10;fontSize=15;fontColor=#14213D;fontStyle=0;fillColor=#A8DADC;strokeColor=#14213D;strokeWidth=1.7;dashed=0;" vertex="1" parent="1">
-          <mxGeometry x="1131" y="1590" width="300" height="98" as="geometry" />
+        <mxCell id="foundry" value="&lt;b&gt;Microsoft Foundry&lt;/b&gt;&lt;br&gt;&lt;b&gt;&lt;font style=&quot;font-size:18px&quot;&gt;gpt-4.1-mini&lt;/font&gt;&lt;/b&gt; · ask-the-match agent · Azure AI Speech" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=10;fontSize=15;fontColor=#14213D;fontStyle=0;fillColor=#F4B942;strokeColor=#14213D;strokeWidth=1.7;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="890" y="1590" width="540" height="98" as="geometry" />
         </mxCell>
         <mxCell id="app-insights" value="&lt;b&gt;Application Insights&lt;/b&gt;&lt;br&gt;Live demo active&lt;br&gt;Connection string required elsewhere" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=10;fontSize=15;fontColor=#14213D;fontStyle=0;fillColor=#A8DADC;strokeColor=#14213D;strokeWidth=1.7;dashed=0;" vertex="1" parent="1">
           <mxGeometry x="1464" y="1590" width="260" height="98" as="geometry" />
         </mxCell>
-        <mxCell id="identity-note" value="&lt;b&gt;Identity and integration notes&lt;/b&gt;&lt;br&gt;GitHub OIDC is deployment-only. Runtime Managed Identity uses DefaultAzureCredential for Azure OpenAI, Foundry, Speech without an API key, and Application Insights when configured. Speech is the same service as Section A." style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=8;fontSize=12;fontColor=#14213D;fontStyle=0;fillColor=#A8DADC;strokeColor=#14213D;strokeWidth=1.7;dashed=0;" vertex="1" parent="1">
-          <mxGeometry x="210" y="1724" width="1380" height="66" as="geometry" />
+        <mxCell id="identity-note" value="&lt;b&gt;Identity and integration notes&lt;/b&gt;&lt;br&gt;GitHub OIDC is deployment-only. Runtime Managed Identity uses DefaultAzureCredential for Microsoft Foundry, Speech and Application Insights; no API keys are used. Speech is the same service as Section A." style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=8;fontSize=12;fontColor=#14213D;fontStyle=0;fillColor=#A8DADC;strokeColor=#14213D;strokeWidth=1.7;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="210" y="1736" width="1380" height="60" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
