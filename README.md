@@ -6,7 +6,6 @@ The live demo runs with every AI feature enabled: Foundry agents, Fact-Checker, 
 
 PitchPulse is an AI-assisted football broadcast experience built around synthetic match data. It combines deterministic match statistics with specialist AI agents to explain important moments, generate broadcast-style commentary, and select contextual graphics.
 
-Traditional statistics describe **what happened**. PitchPulse helps viewers understand **why it mattered**—while tying explanations to match data.
 
 ## Live Demo
 
