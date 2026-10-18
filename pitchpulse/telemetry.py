@@ -18,6 +18,7 @@ def setup(app):
     from azure.monitor.opentelemetry import configure_azure_monitor
     from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
+    os.environ.setdefault("OTEL_SERVICE_NAME", "pitchpulse")  # the app's name on the Application map
     configure_azure_monitor(connection_string=connection, credential=DefaultAzureCredential(),
                             logger_name="pitchpulse")
     # app was built from the class imported before configuration; skip one span per streamed SSE chunk
