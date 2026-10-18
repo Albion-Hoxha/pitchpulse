@@ -26,6 +26,7 @@ NAMES = {"home": HOME.name, "away": AWAY.name}
 METRIC_PATTERN = f"^({'|'.join(METRICS)})?$"  # the viewer's focus metric, or none
 ASK_LIMIT = RateLimiter(10, 600)  # questions per viewer IP per 10 minutes
 VOICE_LIMIT = RateLimiter(60, 600)  # spoken lines per viewer IP per 10 minutes
+FINISH_LIMIT = RateLimiter(30, 600)  # lines finished after a pause, per viewer IP per 10 minutes
 MAX_STREAMS_PER_IP = 5  # room for a viewer flipping settings (each change reopens the stream)
 OPEN_STREAMS = defaultdict(int)
 
@@ -58,15 +59,46 @@ def teams():
             for side, t in (("home", HOME), ("away", AWAY))}
 
 
-class Question(BaseModel):
-    question: str = Field(min_length=3, max_length=200)
+class Viewer(BaseModel):
     seed: int = Field(7, ge=0, le=MAX_SEED)
-    until_event: int = Field(0, ge=0)
     mode: str = Field("casual", pattern="^(casual|analyst)$")
     favorite: str = Field("", pattern="^(home|away)?$")
     language: str = Field("English", pattern="^[A-Za-z ]{2,30}$")
     player: str = ""
     metric: str = Field("", pattern=METRIC_PATTERN)
+
+    def prefs(self):
+        return {"mode": self.mode, "favorite": self.favorite, "language": self.language, "player": self.player,
+                "metric": self.metric}
+
+
+class Question(Viewer):
+    question: str = Field(min_length=3, max_length=200)
+    until_event: int = Field(0, ge=0)
+
+
+class Unfinished(Viewer):
+    moment_id: str = Field(pattern=r"^\d{1,6}:[a-z_]{1,20}$")
+
+
+@app.post("/api/commentary")
+async def finish_commentary(u: Unfinished, request: Request):
+    """Finish a moment's line after the viewer paused: closing the stream cancelled the agents' work on it."""
+    if u.player and u.player not in ROSTER:
+        raise HTTPException(422, "player must be a name from /api/teams")
+    if not FINISH_LIMIT.allow(client_ip(request)):
+        raise HTTPException(429, "Too many requests – please wait a few minutes.")
+    event_id = int(u.moment_id.split(":")[0])
+    stats, detector = MatchStats(), MomentDetector(NAMES, focus=u.player or None)  # same detector as the stream
+    for e in simulate(seed=u.seed):
+        stats.update(e)
+        moment = next((m for m in detector.check(e, stats) if m["id"] == u.moment_id), None)
+        if moment or e["id"] >= event_id:
+            break
+    if not moment:
+        raise HTTPException(404, "No such moment in this match.")
+    c = await commentate(moment, NAMES, u.prefs())
+    return {"moment_id": moment["id"], **c, **speakable(c["text"], c["source"], u.language)}
 
 
 @app.post("/api/ask")
@@ -76,7 +108,7 @@ async def ask(q: Question, request: Request):
         raise HTTPException(422, "player must be a name from /api/teams")
     if not ASK_LIMIT.allow(client_ip(request)):
         raise HTTPException(429, "Too many questions – please wait a few minutes.")
-    prefs = {"mode": q.mode, "favorite": q.favorite, "language": q.language, "player": q.player, "metric": q.metric}
+    prefs = q.prefs()
     port = request.scope["server"][1]  # the agent reaches our own MCP server directly, not via the public ingress
     answer = await ask_match(q.question, q.seed, q.until_event, prefs, NAMES, f"http://127.0.0.1:{port}/mcp/")
     return {**answer, **speakable(answer["answer"], answer["source"], q.language)}

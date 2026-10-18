@@ -262,15 +262,31 @@ function lowerThird(kind, text, momentId) {
   lowerThirdTimer = setTimeout(() => (lt.hidden = true), 8000);
 }
 
+// The match and the viewer's preferences, as the agents need them.
+const viewer = () => ({
+  seed: Number($("seed").value) || 0, mode: $("mode").value, favorite: $("favorite").value,
+  language: $("language").value, player: $("player").value, metric: $("metric").value,
+});
+
 function stop() {
   if (source) source.close();
   source = null;
   document.body.classList.remove("live");
   $("play").textContent = ended ? "↻ New match" : "▶ Resume";
-  // closing the stream cancels the agents' unfinished lines on the server, so don't leave them "on it" forever
-  document.querySelectorAll("#moments .commentary.pending").forEach((p) => {
-    p.classList.remove("pending");
-    p.textContent = "Paused before the agents finished this line.";
+  // closing the stream cancels the agents' unfinished lines on the server: ask for each one again
+  document.querySelectorAll("#moments .commentary.pending:not(.finishing)").forEach(async (p) => {
+    p.classList.add("finishing");
+    try {
+      const r = await fetch("/api/commentary", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ moment_id: p.closest("li").id.slice(2), ...viewer() }),
+      });
+      if (!r.ok) throw new Error(r.statusText);
+      showCommentary(await r.json());
+    } catch {
+      p.classList.remove("pending");
+      p.textContent = "Paused before the agents finished this line.";
+    }
   });
 }
 
@@ -322,11 +338,7 @@ $("ask-form").addEventListener("submit", async (ev) => {
   try {
     const r = await fetch("/api/ask", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        question: $("ask-input").value, seed: Number($("seed").value) || 0, until_event: lastId,
-        mode: $("mode").value, favorite: $("favorite").value, language: $("language").value, player: $("player").value,
-        metric: $("metric").value,
-      }),
+      body: JSON.stringify({ question: $("ask-input").value, until_event: lastId, ...viewer() }),
     });
     const a = await r.json();
     if (!r.ok) throw new Error(typeof a.detail === "string" ? a.detail : r.statusText);

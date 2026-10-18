@@ -168,6 +168,19 @@ class SimulatorTest(unittest.TestCase):
         with patch.dict(server.OPEN_STREAMS, {"testclient": server.MAX_STREAMS_PER_IP}):
             self.assertEqual(client.get("/api/match/stream").status_code, 429)
 
+    def test_pause_finishes_unfinished_lines(self):
+        # Pausing cancels the agents mid-line; the browser then asks for those moments again.
+        client = TestClient(server.app)
+        fake = AsyncMock(return_value={"text": "GOAL! Hale scores.", "source": "ai"})
+        with patch.object(server, "commentate", fake):
+            ok = client.post("/api/commentary", json={"seed": 7, "moment_id": "739:goal", "language": "Albanian"})
+            missing = client.post("/api/commentary", json={"seed": 7, "moment_id": "740:goal"})
+            bad = client.post("/api/commentary", json={"seed": 7, "moment_id": "<script>"})
+        self.assertEqual(ok.status_code, 200)
+        self.assertEqual((ok.json()["moment_id"], ok.json()["voice_language"]), ("739:goal", "Albanian"))
+        self.assertEqual(fake.await_args.args[0]["headline"], "GOAL – Marcus Hale (Riverside Athletic)")
+        self.assertEqual((missing.status_code, bad.status_code), (404, 422))
+
     def test_voice_only_speaks_our_lines(self):
         client = TestClient(server.app)
         line = server.speakable("GOAL! Hale scores.", "ai", "Albanian")
