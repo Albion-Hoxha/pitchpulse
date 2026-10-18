@@ -26,6 +26,7 @@ class RateLimiter:
 
 
 def client_ip(request):
-    """The viewer's IP; Azure Container Apps' ingress puts it first in X-Forwarded-For."""
+    """The viewer's IP. Azure Container Apps' ingress appends it to X-Forwarded-For, so it is the last entry;
+    earlier entries come from the browser and can be forged to dodge the rate limits."""
     forwarded = request.headers.get("x-forwarded-for", "")
-    return forwarded.split(",")[0].strip() or (request.client.host if request.client else "unknown")
+    return forwarded.split(",")[-1].strip() or (request.client.host if request.client else "unknown")

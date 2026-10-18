@@ -1,3 +1,4 @@
+import json
 import os
 import unittest
 from unittest.mock import AsyncMock, patch
@@ -5,7 +6,7 @@ from unittest.mock import AsyncMock, patch
 from fastapi.testclient import TestClient
 
 from pitchpulse import agents, server
-from pitchpulse.limits import RateLimiter
+from pitchpulse.limits import RateLimiter, client_ip
 
 from pitchpulse.agents import build_overlay, cite, default_pick, fact_check, template, validate_pick
 from pitchpulse.mcp_server import key_moments, match_snapshot, player_stats, top_players
@@ -167,6 +168,25 @@ class SimulatorTest(unittest.TestCase):
         self.assertEqual(codes, [200, 200, 429])
         with patch.dict(server.OPEN_STREAMS, {"testclient": server.MAX_STREAMS_PER_IP}):
             self.assertEqual(client.get("/api/match/stream").status_code, 429)
+        # The ingress appends the real address; anything before it is browser-supplied and forgeable.
+        forged = type("R", (), {"headers": {"x-forwarded-for": "203.0.113.7, 198.51.100.9"}, "client": None})()
+        self.assertEqual(client_ip(forged), "198.51.100.9")
+        self.assertEqual(client.get("/api/match/stream", params={"player": "Nobody Real"}).status_code, 422)
+
+    def test_resume_keeps_the_stats(self):
+        # After a pause the stream restarts from `start`; stats must still count the whole match so far.
+        client = TestClient(server.app)
+        events = list(simulate(seed=7))
+        start = events[-3]["id"]
+        fake = AsyncMock(return_value={"text": "Full-time.", "source": "template"})
+        with patch.object(server, "commentate", fake):
+            body = client.get("/api/match/stream", params={"seed": 7, "start": start, "speed": 1000}).text
+        first = json.loads(next(line[6:] for line in body.splitlines() if line.startswith('data: {"event"')))
+        stats = MatchStats()
+        for e in events[:-1]:  # through the first event the stream sends
+            stats.update(e)
+        self.assertEqual(first["event"]["id"], start + 1)
+        self.assertEqual(first["stats"], json.loads(json.dumps(stats.snapshot())))
 
     def test_pause_finishes_unfinished_lines(self):
         # Pausing cancels the agents mid-line; the browser then asks for those moments again.

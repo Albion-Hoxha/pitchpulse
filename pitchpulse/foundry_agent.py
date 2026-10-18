@@ -29,14 +29,20 @@ def message(question, seed, until_event, language, audience):
     return f"seed={seed}; until_event={until_event}; language={language}. {audience}\nQuestion: {question}"
 
 
+_credential = None
+
+
 async def run(text):
     """Run the published Foundry agent once; returns the agent response."""
+    global _credential
     from agent_framework.foundry import FoundryAgent
-    from azure.identity.aio import DefaultAzureCredential
 
-    async with DefaultAzureCredential() as credential:
-        agent = FoundryAgent(project_endpoint=PROJECT_ENDPOINT, agent_name=AGENT_NAME, credential=credential)
-        return await agent.run(text)
+    if _credential is None:  # one credential for the process: it caches the token instead of fetching one per question
+        from azure.identity.aio import DefaultAzureCredential
+
+        _credential = DefaultAzureCredential()
+    agent = FoundryAgent(project_endpoint=PROJECT_ENDPOINT, agent_name=AGENT_NAME, credential=_credential)
+    return await agent.run(text)
 
 
 def publish(mcp_url):

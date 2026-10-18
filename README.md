@@ -114,7 +114,7 @@ The simulator emits seeded synthetic events. The Statistician updates match stat
 
 For Ask the Match, the application supplies the current seed and event position to the selected agent. MCP tools replay the synthetic match to that point and return snapshots, player statistics, rankings, or key moments. The answer is checked against independently replayed match evidence; only accepted answers are returned as verified with evidence.
 
-The match stream is served over Server-Sent Events at `GET /api/match/stream`. Each event message includes `{event, stats, moments}` and may include `focus`; agent output arrives as a `{commentary}` message. Commentary includes a timed, machine-readable overlay with fields such as `t`, `period`, `clock`, `graphic`, `title`, `duration_s`, and `data`.
+The match stream is served over Server-Sent Events at `GET /api/match/stream`. Each event message includes `{event, stats, moments}` and may include `focus`; agent output arrives as a `{commentary}` message. Commentary includes a timed, machine-readable overlay with fields such as `t`, `period`, `clock`, `graphic`, `title`, `duration_s`, and `data`. If the viewer pauses before the agents finish a line, the browser requests it again from `POST /api/commentary`, so pausing never loses commentary.
 
 For example, the existing interface requests a stream with parameters like:
 

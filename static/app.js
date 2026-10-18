@@ -300,7 +300,9 @@ function start() {
   source = new EventSource(`/api/match/stream?${params}`);
   document.body.classList.add("live");
   $("play").textContent = "⏸ Pause";
+  let started = false;
   source.onmessage = (msg) => {
+    started = true;
     const data = JSON.parse(msg.data);
     if (data.commentary) return showCommentary(data.commentary);
     const { event, stats, moments } = data;
@@ -312,7 +314,12 @@ function start() {
     if (data.focus) renderFocus(data.focus);
   };
   source.addEventListener("end", () => { ended = true; stop(); });
-  source.onerror = () => { if (!ended) stop(); };
+  source.onerror = () => {
+    if (ended) return;
+    // the server refused the match (too many open from this network, or a bad setting): say so
+    if (!started) lowerThird("Sorry", "Could not start the match – please try again in a minute.", "");
+    stop();
+  };
 }
 
 function reset() {
@@ -373,14 +380,14 @@ $("voice").addEventListener("change", () => {
 
 $("play").addEventListener("click", () => (source ? stop() : start()));
 $("restart").addEventListener("click", () => {
+  reset();  // first, so stop() has no lines left to finish for the match we are throwing away
   stop();
-  reset();
   voiceQueue.length = 0;  // lines from the old run must not be spoken over the new one
   currentAudio?.pause();
   speaking = false;
   $("play").textContent = "▶ Kick off";  // back to 0:00 and wait, like a fresh match
 });
-$("seed").addEventListener("change", () => { stop(); reset(); $("play").textContent = "▶ Kick off"; });
+$("seed").addEventListener("change", () => { reset(); stop(); $("play").textContent = "▶ Kick off"; });
 ["speed", "mode", "favorite", "language", "player", "metric"].forEach((id) =>
   $(id).addEventListener("change", () => {
     if (id === "player" && !$("player").value) $("player-cam").hidden = true;
