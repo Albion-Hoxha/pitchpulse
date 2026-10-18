@@ -82,7 +82,7 @@ AI lines arrive as drafts. Nothing reaches the screen or the voice until a human
 4. Change **Supporting** to the other club, or **Viewer** to *Analyst* – the next lines change tone and depth.
 5. Choose **Follow player** for a player cam, a **Focus metric** such as *Pressing*, and tick **🎬 Producer** to approve lines before they air.
 6. In **Ask the match**, try *"Who has been most dangerous?"* or *"Kush ka bërë më shumë pasime?"*.
-7. Let the match reach 90' for the AI recap, then change **Match** for a different game.
+7. Let the match reach 90' for the AI recap, then press **↺ Start over** to replay it, or change **Match** for a different game.
 
 No login or credentials are needed.
 
