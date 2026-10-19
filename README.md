@@ -14,6 +14,10 @@ Traditional statistics describe **what happened**. PitchPulse helps viewers unde
 
 The demo runs a simulated match; it does not connect to a real-world live football feed. All clubs and players in the simulator are fictional.
 
+## 🎥 Project Demo Video
+
+[Watch the PitchPulse Demo on YouTube](https://www.youtube.com/watch?v=jB36TWpEmLc)
+
 ## The Problem
 
 Scorelines and statistics show events and totals, but they do not always explain the context behind a change in momentum, a big chance, or a shift in control. AI can make those moments easier to understand, but an on-air explanation also needs to be grounded in the available match evidence.
