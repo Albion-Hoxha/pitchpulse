@@ -262,11 +262,32 @@ function lowerThird(kind, text, momentId) {
   lowerThirdTimer = setTimeout(() => (lt.hidden = true), 8000);
 }
 
+// The match and the viewer's preferences, as the agents need them.
+const viewer = () => ({
+  seed: Number($("seed").value) || 0, mode: $("mode").value, favorite: $("favorite").value,
+  language: $("language").value, player: $("player").value, metric: $("metric").value,
+});
+
 function stop() {
   if (source) source.close();
   source = null;
   document.body.classList.remove("live");
   $("play").textContent = ended ? "↻ New match" : "▶ Resume";
+  // closing the stream cancels the agents' unfinished lines on the server: ask for each one again
+  document.querySelectorAll("#moments .commentary.pending:not(.finishing)").forEach(async (p) => {
+    p.classList.add("finishing");
+    try {
+      const r = await fetch("/api/commentary", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ moment_id: p.closest("li").id.slice(2), ...viewer() }),
+      });
+      if (!r.ok) throw new Error(r.statusText);
+      showCommentary(await r.json());
+    } catch {
+      p.classList.remove("pending");
+      p.textContent = "Paused before the agents finished this line.";
+    }
+  });
 }
 
 function start() {
@@ -279,7 +300,9 @@ function start() {
   source = new EventSource(`/api/match/stream?${params}`);
   document.body.classList.add("live");
   $("play").textContent = "⏸ Pause";
+  let started = false;
   source.onmessage = (msg) => {
+    started = true;
     const data = JSON.parse(msg.data);
     if (data.commentary) return showCommentary(data.commentary);
     const { event, stats, moments } = data;
@@ -291,7 +314,12 @@ function start() {
     if (data.focus) renderFocus(data.focus);
   };
   source.addEventListener("end", () => { ended = true; stop(); });
-  source.onerror = () => { if (!ended) stop(); };
+  source.onerror = () => {
+    if (ended) return;
+    // the server refused the match (too many open from this network, or a bad setting): say so
+    if (!started) lowerThird("Sorry", "Could not start the match – please try again in a minute.", "");
+    stop();
+  };
 }
 
 function reset() {
@@ -317,11 +345,7 @@ $("ask-form").addEventListener("submit", async (ev) => {
   try {
     const r = await fetch("/api/ask", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        question: $("ask-input").value, seed: Number($("seed").value) || 0, until_event: lastId,
-        mode: $("mode").value, favorite: $("favorite").value, language: $("language").value, player: $("player").value,
-        metric: $("metric").value,
-      }),
+      body: JSON.stringify({ question: $("ask-input").value, until_event: lastId, ...viewer() }),
     });
     const a = await r.json();
     if (!r.ok) throw new Error(typeof a.detail === "string" ? a.detail : r.statusText);
@@ -356,14 +380,14 @@ $("voice").addEventListener("change", () => {
 
 $("play").addEventListener("click", () => (source ? stop() : start()));
 $("restart").addEventListener("click", () => {
+  reset();  // first, so stop() has no lines left to finish for the match we are throwing away
   stop();
-  reset();
   voiceQueue.length = 0;  // lines from the old run must not be spoken over the new one
   currentAudio?.pause();
   speaking = false;
   $("play").textContent = "▶ Kick off";  // back to 0:00 and wait, like a fresh match
 });
-$("seed").addEventListener("change", () => { stop(); reset(); $("play").textContent = "▶ Kick off"; });
+$("seed").addEventListener("change", () => { reset(); stop(); $("play").textContent = "▶ Kick off"; });
 ["speed", "mode", "favorite", "language", "player", "metric"].forEach((id) =>
   $(id).addEventListener("change", () => {
     if (id === "player" && !$("player").value) $("player-cam").hidden = true;

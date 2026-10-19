@@ -38,14 +38,19 @@ def _endpoint():
     return f"https://{resource}.cognitiveservices.azure.com/tts/cognitiveservices/v1" if resource else None
 
 
+_credential = None
+
+
 async def _auth_header():
+    global _credential
     key = os.getenv("AZURE_OPENAI_API_KEY")
     if key:
         return {"Ocp-Apim-Subscription-Key": key}
-    from azure.identity.aio import DefaultAzureCredential
+    if _credential is None:  # one credential for the process: it caches the token instead of fetching one per line
+        from azure.identity.aio import DefaultAzureCredential
 
-    async with DefaultAzureCredential() as credential:  # managed identity in Azure
-        access = await credential.get_token("https://cognitiveservices.azure.com/.default")
+        _credential = DefaultAzureCredential()  # managed identity in Azure
+    access = await _credential.get_token("https://cognitiveservices.azure.com/.default")
     return {"Authorization": f"Bearer {access.token}"}
 
 

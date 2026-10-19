@@ -4,6 +4,8 @@ A team of specialised AI agents turns live, synthetic match events into fact-che
 
 ▶ **Try it live:** https://pitchpulse.livelyfield-1dcb67cb.polandcentral.azurecontainerapps.io
 
+🎬 **Demo video:** https://youtu.be/jB36TWpEmLc
+
 💻 **Code:** https://github.com/Albion-Hoxha/pitchpulse
 
 ---
@@ -69,7 +71,7 @@ AI lines arrive as drafts. Nothing reaches the screen or the voice until a human
 - **Resilience** – if Foundry is unreachable, an in-process agent answers instead
 - **Cost protection** – rate limits and an hourly model budget
 - **Security** – HMAC-signed voice lines, managed identity, no secrets
-- **Quality** – 13 automated tests run in CI on every push
+- **Quality** – 15 automated tests run in CI on every push
 - **Observability** – Application Insights traces every request, agent run, MCP call and model call (managed identity, no keys)
 
 ---
@@ -82,7 +84,7 @@ AI lines arrive as drafts. Nothing reaches the screen or the voice until a human
 4. Change **Supporting** to the other club, or **Viewer** to *Analyst* – the next lines change tone and depth.
 5. Choose **Follow player** for a player cam, a **Focus metric** such as *Pressing*, and tick **🎬 Producer** to approve lines before they air.
 6. In **Ask the match**, try *"Who has been most dangerous?"* or *"Kush ka bërë më shumë pasime?"*.
-7. Let the match reach 90' for the AI recap, then change **Match** for a different game.
+7. Let the match reach 90' for the AI recap, then press **↺ Start over** to replay it, or change **Match** for a different game.
 
 No login or credentials are needed.
 

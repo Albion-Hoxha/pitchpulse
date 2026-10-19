@@ -6,26 +6,27 @@ import asyncio
 import json
 from collections import defaultdict
 from pathlib import Path
+from typing import Annotated
 
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from . import telemetry, voice
 from .agents import METRICS, ROSTER, ask_match, commentate
 from .limits import RateLimiter, client_ip
-from .mcp_server import MAX_SEED, mcp
+from .mcp_server import MAX_SEED, NAMES, mcp
 from .moments import MomentDetector
 from .simulator import AWAY, HOME, simulate
 from .stats import MatchStats
 
 STATIC = Path(__file__).parent.parent / "static"
 MAX_SLEEP = 1.5  # seconds; keeps long gaps (half-time) short on screen
-NAMES = {"home": HOME.name, "away": AWAY.name}
 METRIC_PATTERN = f"^({'|'.join(METRICS)})?$"  # the viewer's focus metric, or none
 ASK_LIMIT = RateLimiter(10, 600)  # questions per viewer IP per 10 minutes
 VOICE_LIMIT = RateLimiter(60, 600)  # spoken lines per viewer IP per 10 minutes
+FINISH_LIMIT = RateLimiter(30, 600)  # lines finished after a pause, per viewer IP per 10 minutes
 MAX_STREAMS_PER_IP = 5  # room for a viewer flipping settings (each change reopens the stream)
 OPEN_STREAMS = defaultdict(int)
 
@@ -58,25 +59,64 @@ def teams():
             for side, t in (("home", HOME), ("away", AWAY))}
 
 
-class Question(BaseModel):
-    question: str = Field(min_length=3, max_length=200)
+class Viewer(BaseModel):
     seed: int = Field(7, ge=0, le=MAX_SEED)
-    until_event: int = Field(0, ge=0)
     mode: str = Field("casual", pattern="^(casual|analyst)$")
     favorite: str = Field("", pattern="^(home|away)?$")
     language: str = Field("English", pattern="^[A-Za-z ]{2,30}$")
     player: str = ""
     metric: str = Field("", pattern=METRIC_PATTERN)
 
+    @field_validator("player")
+    @classmethod
+    def known_player(cls, name):
+        if name and name not in ROSTER:
+            raise ValueError("player must be a name from /api/teams")
+        return name
+
+    def prefs(self):
+        return {"mode": self.mode, "favorite": self.favorite, "language": self.language, "player": self.player,
+                "metric": self.metric}
+
+
+class Question(Viewer):
+    question: str = Field(min_length=3, max_length=200)
+    until_event: int = Field(0, ge=0)
+
+
+class Unfinished(Viewer):
+    moment_id: str = Field(pattern=r"^\d{1,6}:[a-z_]{1,20}$")
+
+
+class Playback(Viewer):
+    speed: float = Field(30, gt=0, le=1000)
+    start: int = Field(0, ge=0)  # resume after this event id
+
+
+@app.post("/api/commentary")
+async def finish_commentary(u: Unfinished, request: Request):
+    """Finish a moment's line after the viewer paused: closing the stream cancelled the agents' work on it."""
+    if not FINISH_LIMIT.allow(client_ip(request)):
+        raise HTTPException(429, "Too many requests – please wait a few minutes.")
+    event_id = int(u.moment_id.split(":")[0])
+    stats, detector = MatchStats(), MomentDetector(NAMES, focus=u.player or None)  # same detector as the stream
+    for e in simulate(seed=u.seed):
+        stats.update(e)
+        moment = next((m for m in detector.check(e, stats) if m["id"] == u.moment_id), None)
+        if moment or e["id"] >= event_id:
+            break
+    if not moment:
+        raise HTTPException(404, "No such moment in this match.")
+    c = await commentate(moment, NAMES, u.prefs())
+    return {"moment_id": moment["id"], **c, **speakable(c["text"], c["source"], u.language)}
+
 
 @app.post("/api/ask")
 async def ask(q: Question, request: Request):
     """Ask the Match: an Agent Framework agent answers from the match MCP server, fact-checked."""
-    if q.player and q.player not in ROSTER:
-        raise HTTPException(422, "player must be a name from /api/teams")
     if not ASK_LIMIT.allow(client_ip(request)):
         raise HTTPException(429, "Too many questions – please wait a few minutes.")
-    prefs = {"mode": q.mode, "favorite": q.favorite, "language": q.language, "player": q.player, "metric": q.metric}
+    prefs = q.prefs()
     port = request.scope["server"][1]  # the agent reaches our own MCP server directly, not via the public ingress
     answer = await ask_match(q.question, q.seed, q.until_event, prefs, NAMES, f"http://127.0.0.1:{port}/mcp/")
     return {**answer, **speakable(answer["answer"], answer["source"], q.language)}
@@ -110,23 +150,17 @@ async def say(s: Speech, request: Request):
 
 
 @app.get("/api/match/stream")
-async def stream(request: Request, seed: int = Query(7, ge=0, le=MAX_SEED), speed: float = Query(30, gt=0, le=1000), start: int = Query(0, ge=0),
-                 mode: str = Query("casual", pattern="^(casual|analyst)$"),
-                 favorite: str = Query("", pattern="^(home|away)?$"),
-                 language: str = Query("English", pattern="^[A-Za-z ]{2,30}$"),
-                 player: str = "", metric: str = Query("", pattern=METRIC_PATTERN)):
+async def stream(request: Request, q: Annotated[Playback, Query()]):
     """SSE messages: {event, stats, moments, focus?} per match event, and {commentary} (with
     its timed overlay) when the agents finish a moment. `start` resumes after a pause:
     events up to that id are replayed instantly so the stats stay correct."""
-    if player and player not in ROSTER:
-        raise HTTPException(422, "player must be a name from /api/teams")
     ip = client_ip(request)
     if OPEN_STREAMS[ip] >= MAX_STREAMS_PER_IP:
         raise HTTPException(429, "Too many matches open at once from this address.")
-    OPEN_STREAMS[ip] += 1
-    prefs = {"mode": mode, "favorite": favorite, "language": language, "player": player, "metric": metric}
+    prefs, player, language = q.prefs(), q.player, q.language
 
     async def gen():
+        OPEN_STREAMS[ip] += 1  # counted only once the stream runs, so an aborted request can't leak a slot
         try:
             async for chunk in match_feed():
                 yield chunk
@@ -151,13 +185,13 @@ async def stream(request: Request, seed: int = Query(7, ge=0, le=MAX_SEED), spee
             while not voiced.empty():
                 yield f"data: {json.dumps(voiced.get_nowait())}\n\n"
 
-        for e in simulate(seed=seed):
+        for e in simulate(seed=q.seed):
             stats.update(e)
             moments = detector.check(e, stats)
-            if e["id"] <= start:
+            if e["id"] <= q.start:
                 continue
             if last_t is not None:
-                await asyncio.sleep(min(max(e["t"] - last_t, 0) / speed, MAX_SLEEP))
+                await asyncio.sleep(min(max(e["t"] - last_t, 0) / q.speed, MAX_SLEEP))
             last_t = e["t"]
             for m in moments:  # agents run in the background; the match feed never waits for them
                 task = asyncio.create_task(narrate(m))

@@ -304,17 +304,6 @@ async def _direct(facts, moment):
         return default_pick(moment)
 
 
-ASK = (
-    "You are 'Ask the Match', the TV studio's data assistant. Answer the viewer's question about the live match "
-    "using ONLY the match tools, and pass seed={seed} and until_event={until} to every tool call. Answer in "
-    "{language}, max 60 words. {audience} For 'right now' questions use the last-5-minute figures (flow.*, "
-    "momentum); for one half use match_snapshot's by_half figures; otherwise the match totals. Never predict "
-    "results of this or any other match. Back every comparison (more, fewer, better, worse) with the numbers being "
-    "compared, and check it: the higher number must be the one you call higher. If the tools cannot "
-    "answer it, say so briefly. Quote numbers exactly as the tools return them; never invent numbers or players."
-)
-
-
 def _tools_used(response):
     """Tool names an agent called: local function calls carry `name`, Foundry's hosted MCP calls `tool_name`."""
     calls = [c for m in getattr(response, "messages", []) for c in getattr(m, "contents", [])
@@ -360,9 +349,10 @@ async def ask_match(question, seed, until_event, prefs, names, mcp_url):
 
     async def ask_once(text, stack):
         nonlocal engine, local_agent
+        message = foundry_agent.message(text, seed, until_event, language, audience)
         if engine == "foundry":
             try:
-                return await foundry_agent.run(foundry_agent.message(text, seed, until_event, language, audience))
+                return await foundry_agent.run(message)
             except Exception as exc:
                 LOG.warning("Foundry agent failed, using the local agent: %r", exc)
                 engine = "local"  # Foundry unreachable: the in-process agent answers instead
@@ -371,11 +361,10 @@ async def ask_match(question, seed, until_event, prefs, names, mcp_url):
             from agent_framework.openai import OpenAIChatCompletionClient
 
             match_tools = await stack.enter_async_context(MCPStreamableHTTPTool(name="match", url=mcp_url))
+            # same instructions and message format as the Foundry agent, so both answer alike
             local_agent = Agent(OpenAIChatCompletionClient(model=MODEL, async_client=CLIENT), name="AskTheMatch",
-                                instructions=ASK.format(seed=seed, until=until_event, audience=audience,
-                                                        language=language),
-                                tools=match_tools)
-        return await local_agent.run(text)
+                                instructions=foundry_agent.INSTRUCTIONS, tools=match_tools)
+        return await local_agent.run(message)
 
     try:
         async with AsyncExitStack() as stack:
