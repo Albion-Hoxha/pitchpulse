@@ -12,6 +12,8 @@ Traditional statistics describe **what happened**. PitchPulse helps viewers unde
 
 [Open the PitchPulse live demo](https://pitchpulse.livelyfield-1dcb67cb.polandcentral.azurecontainerapps.io)
 
+[Watch the demo video (2 min)](https://youtu.be/58DQmPJ_iRM)
+
 The demo runs a simulated match; it does not connect to a real-world live football feed. All clubs and players in the simulator are fictional.
 
 ## The Problem

@@ -4,6 +4,8 @@ A team of specialised AI agents turns live, synthetic match events into fact-che
 
 ▶ **Try it live:** https://pitchpulse.livelyfield-1dcb67cb.polandcentral.azurecontainerapps.io
 
+🎬 **Demo video:** https://youtu.be/58DQmPJ_iRM
+
 💻 **Code:** https://github.com/Albion-Hoxha/pitchpulse
 
 ---
