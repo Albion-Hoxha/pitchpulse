@@ -304,6 +304,10 @@ async def _direct(facts, moment):
         return default_pick(moment)
 
 
+def _blocked_by_filter(exc):
+    return type(exc).__name__ == "OpenAIContentFilterException"
+
+
 def _tools_used(response):
     """Tool names an agent called: local function calls carry `name`, Foundry's hosted MCP calls `tool_name`."""
     calls = [c for m in getattr(response, "messages", []) for c in getattr(m, "contents", [])
@@ -354,6 +358,8 @@ async def ask_match(question, seed, until_event, prefs, names, mcp_url):
             try:
                 return await foundry_agent.run(message)
             except Exception as exc:
+                if _blocked_by_filter(exc):
+                    raise  # the local agent would hit the same filter
                 LOG.warning("Foundry agent failed, using the local agent: %r", exc)
                 engine = "local"  # Foundry unreachable: the in-process agent answers instead
         if local_agent is None:
@@ -377,6 +383,9 @@ async def ask_match(question, seed, until_event, prefs, names, mcp_url):
                 answer, tools = response.text.strip(), sorted(set(tools) | set(_tools_used(response)))
                 bad = fact_check(answer, check)
     except Exception as exc:  # the question goes unanswered, the broadcast carries on
+        if _blocked_by_filter(exc):  # Azure's safety filter stopped it, e.g. a jailbreak attempt
+            return {"answer": "That question was blocked by the content safety filter.", "source": "blocked",
+                    "tools": []}
         return {"answer": "Sorry, the data desk could not answer that right now.", "source": "error",
                 "error": type(exc).__name__, "tools": []}
     if bad or not answer:
